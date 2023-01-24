@@ -1,5 +1,4 @@
 {
-  "type": "object",
   "properties": {
     "text": {
       "type": "string",
@@ -18,8 +17,12 @@
     },
     "readOnlyProp": {
       "type": "string"
+    },
+    "privateN": {
+      "type": "number"
     }
   },
   "required": ["text"],
-  "readonly": ["readOnlyProp"]
+  "readonlyProperties": ["readOnlyProp"],
+  "omitProperties": ["privateN"]
 }

@@ -15,22 +15,28 @@ const schemas: Record<string, Schema> = config.schemas
 
 export default class Model {
   name: string
+  collection: Collection
   readOnlyProps: string[]
+  omitProps: string[]
   schema: Schema
   validator: ValidateFunction
-  collection: Collection
 
   constructor (name: string) {
     if (!schemas[name]) {
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
-    const schema = schemas[name]
-    this.readOnlyProps = Array.isArray(schema.readonly) ? schema.readonly : []
-    this.schema = { additionalProperties: false, ...schema } // set additionalProperties to false by default
-    delete this.schema.readonly
-    this.validator = ajv.compile(this.schema)
     this.collection = useCol(pluralize(name))
+    const schema = schemas[name]
+
+    this.readOnlyProps = Array.isArray(schema.readonlyProperties) ? schema.readonlyProperties : []
+    this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : []
+
+    this.schema = { additionalProperties: false, ...schema, type: 'object' } // set additionalProperties to false by default, type must be object
+    delete this.schema.readonlyProperties
+    delete this.schema.omitProperties // props to omit when clean json
+
+    this.validator = ajv.compile(this.schema)
   }
 
   /**
@@ -50,12 +56,14 @@ export default class Model {
 
   /**
    * Clean an object
-   *  - remove fields to omit
+   *  - remove properties to omit
    *  - replace _id by id
    * @param d representation of a model instance
    */
   cleanJSON (d: any) {
-    // TODO
+    for (const key of this.omitProps) { // remove properties to omit
+      delete d[key]
+    }
     return { ...d, id: d._id, _id: undefined }
   }
 

@@ -7,12 +7,14 @@ router.get('/', defineEventHandler(async () => await Todo.getAll()))
 // create
 router.post('/', defineEventHandler(async (event) => {
   const body = await readBody(event)
+  body.privateN = 0
   return await Todo.create(body)
 }))
 
 // update
 router.put('/:id', defineEventHandler(async (event) => {
   const body = await readBody(event)
+  body.privateN = Math.round(Math.random() * 100)
   return await Todo.update(event.context.params.id, body)
 }))
 
