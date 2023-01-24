@@ -25,6 +25,7 @@
   "required": ["text"],
   "readonlyProperties": ["readOnlyProp"],
   "omitProperties": ["privateN"],
+  "encryptedProperties": ["text"],
   "trackedProperties": ["text"],
   "timestamps": true
 }

@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
+import type { CipherGCMTypes } from 'node:crypto'
 import { defineNuxtModule, createResolver } from '@nuxt/kit'
 import { defu } from 'defu'
 
@@ -6,7 +7,9 @@ import type { RuntimeConfig } from '@nuxt/schema'
 
 export interface ModuleOptions {
   schemasFolder: string,
-  dbUrl?: string
+  dbUrl?: string,
+  cipherAlgo: CipherGCMTypes,
+  cipherKey?: string
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -15,7 +18,8 @@ export default defineNuxtModule<ModuleOptions>({
     configKey: 'oa'
   },
   defaults: {
-    schemasFolder: 'schemas'
+    schemasFolder: 'schemas',
+    cipherAlgo: 'aes-256-gcm'
   },
   setup (options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
@@ -23,7 +27,7 @@ export default defineNuxtModule<ModuleOptions>({
     const schemasFolderPath = rootResolver.resolve(options.schemasFolder)
 
     if (!options.dbUrl) {
-      throw new Error('[@nuxtjs/oa] Mongodb connection string is required [oa.dbUrl]')
+      throw new Error('[@nuxtjs/oa] dbUrl is required (mongodb connection string)')
     }
 
     if (!existsSync(schemasFolderPath)) {

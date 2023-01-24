@@ -1,10 +1,11 @@
+import { randomBytes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
-
 import type { ValidateFunction } from 'ajv'
 import type { Collection, ObjectId } from 'mongodb'
 
 import { pluralize } from './pluralize'
+import { decrypt, encrypt } from './cipher'
 
 const ajv = new Ajv({ removeAdditional: true })
 addFormats(ajv)
@@ -12,12 +13,16 @@ addFormats(ajv)
 type Schema = { [key: string]: any }
 const config = useRuntimeConfig()
 const schemas: Record<string, Schema> = config.schemas
+const cipherAlgo = config.oa.cipherAlgo
+const cipherKey = config.oa.cipherKey
 
 export default class Model {
   name: string
   collection: Collection
   readOnlyProps: string[]
   omitProps: string[]
+  encryptedProps: string[]
+  cipherKey: Buffer|undefined
   trackedProps: string[]
   timestamps: Boolean
   schema: Schema
@@ -33,6 +38,17 @@ export default class Model {
 
     this.readOnlyProps = Array.isArray(schema.readonlyProperties) ? schema.readonlyProperties : []
     this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : [] // props to omit when clean json
+    this.encryptedProps = []
+    if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
+      this.encryptedProps = schema.encryptedProperties
+      if (!cipherKey) {
+        throw new Error(`[@nuxtjs/oa] cipherKey is required to encrypt data (you have "encryptedProperties" in "${this.name}" schema but no cipherKey defined in the module options)`)
+      }
+      this.cipherKey = Buffer.from(cipherKey, 'base64')
+      if (this.cipherKey.length !== 32) {
+        throw new Error('[@nuxtjs/oa] cipherKey must be a 32-bit key')
+      }
+    }
     this.trackedProps = [] // props to put in updates
     if (Array.isArray(schema.trackedProperties)) {
       const props = new Set(schema.trackedProperties)
@@ -44,6 +60,7 @@ export default class Model {
     this.schema = { additionalProperties: false, ...schema, type: 'object' } // set additionalProperties to false by default, type must be object
     delete this.schema.readonlyProperties
     delete this.schema.omitProperties
+    delete this.schema.encryptedProperties
     delete this.schema.trackedProperties
     delete this.schema.timestamps
 
@@ -66,16 +83,48 @@ export default class Model {
   }
 
   /**
+   * Encrypt object props
+   * @param d json
+   */
+  encrypt (d: Schema) {
+    if (!this.cipherKey) { return }
+    let _iv = d._iv
+    if (!_iv) {
+      d._iv = _iv = randomBytes(16).toString('base64')
+    }
+    for (const key of this.encryptedProps) {
+      d[key] = encrypt(d[key], _iv, this.cipherKey, cipherAlgo)
+    }
+  }
+
+  /**
    * Clean an object
    *  - remove properties to omit
    *  - replace _id by id
+   *  - decrypt props if needed
    * @param d representation of a model instance
    */
   cleanJSON (d: any) {
+    const _iv = d._iv
+    const data = { ...d, id: d._id }
+    delete data._id
+    delete data._iv
     for (const key of this.omitProps) { // remove properties to omit
-      delete d[key]
+      delete data[key]
     }
-    return { ...d, id: d._id, _id: undefined }
+    if (this.cipherKey) { // need to decrypt some properties
+      for (const key of this.encryptedProps) {
+        data[key] = decrypt(data[key], _iv, this.cipherKey, cipherAlgo)
+      }
+      if (this.trackedProps.length && Array.isArray(data.updates)) { // tracked props remain crypted
+        for (const update of data.updates) {
+          for (const key of this.encryptedProps) {
+            update[key] = decrypt(update[key], _iv, this.cipherKey, cipherAlgo)
+          }
+        }
+      }
+    }
+    return data
   }
 
   /**
@@ -97,6 +146,7 @@ export default class Model {
     if (this.timestamps) {
       data.createdAt = data.updatedAt = new Date()
     }
+    this.encrypt(data)
     const { insertedId } = await this.collection.insertOne(data)
     return this.cleanJSON({ _id: insertedId, ...data })
   }
@@ -111,13 +161,19 @@ export default class Model {
     const _id = useObjectId(id)
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
-    if (this.trackedProps.length) {
-      const instance = await this.collection.findOne({ _id }) as Schema
+    if (this.timestamps) {
+      data.updatedAt = new Date()
+    }
+    const instance = (this.trackedProps.length || this.cipherKey)
+      ? await this.collection.findOne({ _id }) as Schema
+      : null
+    if (this.trackedProps.length && instance) {
       const update = this.trackedProps.reduce((o, key) => ({ ...o, [key]: instance[key] }), {})
       data.updates = [...(instance.updates || []), update]
     }
-    if (this.timestamps) {
-      data.updatedAt = new Date()
+    if (this.cipherKey && instance) {
+      data._iv = instance._iv
+      this.encrypt(data)
     }
     const { value } = await this.collection
       .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
