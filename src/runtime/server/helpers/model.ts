@@ -18,6 +18,7 @@ export default class Model {
   collection: Collection
   readOnlyProps: string[]
   omitProps: string[]
+  timestamps: Boolean
   schema: Schema
   validator: ValidateFunction
 
@@ -30,11 +31,13 @@ export default class Model {
     const schema = schemas[name]
 
     this.readOnlyProps = Array.isArray(schema.readonlyProperties) ? schema.readonlyProperties : []
-    this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : []
+    this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : [] // props to omit when clean json
+    this.timestamps = typeof schema.timestamps === 'boolean' ? schema.timestamps : false
 
     this.schema = { additionalProperties: false, ...schema, type: 'object' } // set additionalProperties to false by default, type must be object
     delete this.schema.readonlyProperties
-    delete this.schema.omitProperties // props to omit when clean json
+    delete this.schema.omitProperties
+    delete this.schema.timestamps
 
     this.validator = ajv.compile(this.schema)
   }
@@ -83,6 +86,7 @@ export default class Model {
   async create (d: Schema, readOnlyData?: Schema) {
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
+    if (this.timestamps) { data.createdAt = new Date() }
     const { insertedId } = await this.collection.insertOne(data)
     return this.cleanJSON({ _id: insertedId, ...data })
   }
@@ -97,6 +101,7 @@ export default class Model {
     const _id = useObjectId(id)
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
+    if (this.timestamps) { data.updatedAt = new Date() }
     const { value } = await this.collection
       .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
     if (!value) {

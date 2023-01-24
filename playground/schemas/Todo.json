@@ -24,5 +24,6 @@
   },
   "required": ["text"],
   "readonlyProperties": ["readOnlyProp"],
-  "omitProperties": ["privateN"]
+  "omitProperties": ["privateN"],
+  "timestamps": true
 }
