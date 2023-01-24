@@ -1,10 +1,12 @@
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
+
+import type { ValidateFunction } from 'ajv'
 import type { Collection, ObjectId } from 'mongodb'
 
 import { pluralize } from './pluralize'
 
-const ajv = new Ajv()
+const ajv = new Ajv({ removeAdditional: true })
 addFormats(ajv)
 
 const config = useRuntimeConfig()
@@ -12,7 +14,8 @@ const schemas: Record<string, object> = config.schemas
 
 export default class Model {
   name: string
-  validator: Function
+  schema: object
+  validator: ValidateFunction
   collection: Collection
 
   constructor (name: string) {
@@ -20,7 +23,8 @@ export default class Model {
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
-    this.validator = ajv.compile(schemas[name])
+    this.schema = { additionalProperties: false, ...schemas[name] } // set additionalProperties to false by default
+    this.validator = ajv.compile(this.schema)
     this.collection = useCol(pluralize(name))
   }
 
@@ -30,7 +34,10 @@ export default class Model {
    */
   validate (d: object) {
     const valid = this.validator(d)
-    if (!valid) { throw createError({ statusCode: 400, statusMessage: 'Bad data' }) }
+    if (!valid) {
+      const { errors } = this.validator
+      throw createError({ statusCode: 400, statusMessage: 'Bad data', data: { errors } })
+    }
   }
 
   /**
