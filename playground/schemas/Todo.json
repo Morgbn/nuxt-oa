@@ -15,7 +15,11 @@
     "done": {
       "type": "string",
       "format": "date-time"
+    },
+    "readOnlyProp": {
+      "type": "string"
     }
   },
-  "required": ["text"]
+  "required": ["text"],
+  "readonly": ["readOnlyProp"]
 }

@@ -25,6 +25,9 @@
       <button v-if="todos.length" @click="testWithBadData">
         Update with bad data
       </button>
+      <button v-if="todos.length" @click="testWriteReadOnly">
+        Update a read only property
+      </button>
     </template>
     <pre v-if="msg" :style="{ color: msgColor }">{{ msg }}</pre>
   </div>
@@ -40,10 +43,10 @@ const { data: todos, pending } = await useFetch('/api/todos', { lazy: true })
 
 const randStr = (base = 36) => Math.random().toString(base).slice(3, 9)
 
-const msgWrapper = func => async () => {
+const msgWrapper = func => async (d) => {
   msg.value = null
   msgColor.value = 'green'
-  const { data, error } = await func()
+  const { data, error } = await func(d)
   msg.value = data.value || error.value
   if (error.value) {
     msgColor.value = 'red'
@@ -60,7 +63,7 @@ const addTodo = msgWrapper(async () => {
 })
 
 const updateTodo = msgWrapper(async ({ id }) => {
-  const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: { up: 'U-' + randStr() } })
+  const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: { text: 'U-' + randStr() } })
   if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
   return { data, error }
 })
@@ -76,6 +79,10 @@ const testWithRandomId = msgWrapper(async () =>
 )
 
 const testWithBadData = msgWrapper(async () =>
-  await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { noInSchema: 'test' } })
+  await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { noInSchema: 'test', text: 'no' } })
+)
+
+const testWriteReadOnly = msgWrapper(async () =>
+  await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { text: todos.value[0].text, readOnlyProp: 'test' } })
 )
 </script>
