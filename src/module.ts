@@ -1,16 +1,9 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import type { CipherGCMTypes } from 'node:crypto'
 import { defineNuxtModule, createResolver } from '@nuxt/kit'
 import { defu } from 'defu'
 
 import type { RuntimeConfig } from '@nuxt/schema'
-
-export interface ModuleOptions {
-  schemasFolder: string,
-  dbUrl?: string,
-  cipherAlgo: CipherGCMTypes,
-  cipherKey?: string
-}
+import type { ModuleOptions } from './types'
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
