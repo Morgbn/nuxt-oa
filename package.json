@@ -25,6 +25,7 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "consola": "^2.15.3",
+    "hookable": "^5.4.2",
     "mongodb": "^4.13.0"
   },
   "devDependencies": {

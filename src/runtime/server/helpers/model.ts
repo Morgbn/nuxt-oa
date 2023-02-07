@@ -3,6 +3,7 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
 import type { Collection, ObjectId } from 'mongodb'
+import { Hookable } from 'hookable'
 import type { Schema } from '../../../types'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
@@ -25,7 +26,7 @@ export function cleanSchema (schema: Schema): Schema {
   return schema
 }
 
-export default class Model {
+export default class Model extends Hookable {
   name: string
   collection: Collection
   readOnlyProps: string[]
@@ -38,13 +39,15 @@ export default class Model {
   validator: ValidateFunction
 
   constructor (name: string) {
+    super()
     if (!schemas[name]) {
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
     this.collection = useCol(pluralize(name))
-    const schema = schemas[name]
+    this.callHook('collection:ready', { collection: this.collection })
 
+    const schema = schemas[name]
     this.readOnlyProps = Array.isArray(schema.readonlyProperties) ? schema.readonlyProperties : []
     this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : [] // props to omit when clean json
     this.encryptedProps = []
@@ -129,6 +132,8 @@ export default class Model {
         }
       }
     }
+
+    this.callHook('model:cleanJSON', { data })
     return data
   }
 
@@ -136,8 +141,9 @@ export default class Model {
    * Get all instances of the model
    */
   async getAll () {
+    const hookClean = await this.callHook('getAll') ?? ((el: object) => this.cleanJSON(el))
     return (await this.collection.find({}).toArray())
-      .map(el => this.cleanJSON(el))
+      .map(hookClean)
   }
 
   /**
@@ -146,11 +152,16 @@ export default class Model {
    * @param readOnlyData data from application logic
    */
   async create (d: Schema, readOnlyData?: Schema) {
+    await this.callHook('create:before', { data: d })
+
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     if (this.timestamps) {
       data.createdAt = data.updatedAt = new Date()
     }
+
+    await this.callHook('create:after', { data })
+
     this.encrypt(data)
     const { insertedId } = await this.collection.insertOne(data)
     return this.cleanJSON({ _id: insertedId, ...data })
@@ -164,6 +175,8 @@ export default class Model {
    */
   async update (id: string | ObjectId, d: Schema, readOnlyData?: Schema) {
     const _id = useObjectId(id)
+    await this.callHook('update:before', { id, _id, data: d })
+
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     if (this.timestamps) {
@@ -176,6 +189,9 @@ export default class Model {
       const update = this.trackedProps.reduce((o, key) => ({ ...o, [key]: instance[key] }), {})
       data.updates = [...(instance.updates || []), update]
     }
+
+    await this.callHook('update:after', { id, _id, data })
+
     if (this.cipherKey && instance) {
       data._iv = instance._iv
       this.encrypt(data)
@@ -195,7 +211,11 @@ export default class Model {
    */
   async archive (id: string | ObjectId, archive = true) {
     const _id = useObjectId(id)
+    await this.callHook('archive:before', { id, _id })
+
     const data = { deletedAt: archive ? new Date() : undefined }
+    await this.callHook('archive:after', { id, _id, data })
+
     const { value } = await this.collection
       .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
     if (!value) {
@@ -210,6 +230,8 @@ export default class Model {
    */
   async delete (id: string | ObjectId) {
     const _id = useObjectId(id)
+    await this.callHook('delete:before', { id, _id })
+
     const { deletedCount } = await this.collection.deleteOne({ _id })
     return { deletedCount }
   }

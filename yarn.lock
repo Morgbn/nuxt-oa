@@ -3919,7 +3919,7 @@ hash-sum@^2.0.0:
 
 hookable@^5.4.2:
   version "5.4.2"
-  resolved "https://registry.npmjs.org/hookable/-/hookable-5.4.2.tgz"
+  resolved "https://registry.yarnpkg.com/hookable/-/hookable-5.4.2.tgz#6a1d3c4b3cb5b4262f99b3070ce0ee92c9c78049"
   integrity sha512-6rOvaUiNKy9lET1X0ECnyZ5O5kSV0PJbtA5yZUgdEF7fGJEVwSLSislltyt7nFwVVALYHQJtfGeAR2Y0A0uJkg==
 
 hosted-git-info@^2.1.4:

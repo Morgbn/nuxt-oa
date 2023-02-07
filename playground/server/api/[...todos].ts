@@ -3,6 +3,10 @@ import { H3Event } from 'h3'
 
 const Todo = useModel('Todo')
 
+Todo.hook('update:after', ({ data }) => {
+  data.propAddedOnHook = 'update:after'
+})
+
 const log = oaHandler((ev: H3Event) => {
   consola.log('log::', ev.node.req.method)
 }, (doc: any) => {
