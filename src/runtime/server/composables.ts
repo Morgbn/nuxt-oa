@@ -4,6 +4,7 @@ import type { Db, Collection } from 'mongodb'
 
 import Model from './helpers/model'
 export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
+export { useGetAll, useCreate, useUpdate, useArchive, useDelete } from './helpers/controllers'
 
 const config = useRuntimeConfig().oa
 
