@@ -189,6 +189,22 @@ export default class Model {
   }
 
   /**
+   * Archive a model instance
+   * @param id instance  id
+   * @param archive whether to archive or unarchive
+   */
+  async archive (id: string | ObjectId, archive = true) {
+    const _id = useObjectId(id)
+    const data = { deletedAt: archive ? new Date() : undefined }
+    const { value } = await this.collection
+      .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
+    if (!value) {
+      throw createError({ statusCode: 404, statusMessage: 'Document not found' })
+    }
+    return this.cleanJSON(value)
+  }
+
+  /**
    * Delete a model instance
    * @param id instance id
    */

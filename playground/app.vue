@@ -8,8 +8,11 @@
       <ul>
         <li v-for="t in todos" :key="t.id">
           {{ t.text }}
-          <button @click="updateTodo(t)">
+          <button :disabled="t.deletedAt" @click="updateTodo(t)">
             ♻️
+          </button>
+          <button @click="archiveTodo(t)">
+            🗃️
           </button>
           <button @click="rmTodo(t)">
             🗑️
@@ -64,6 +67,12 @@ const addTodo = msgWrapper(async () => {
 
 const updateTodo = msgWrapper(async ({ id }) => {
   const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: { text: 'U-' + randStr() } })
+  if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
+  return { data, error }
+})
+
+const archiveTodo = msgWrapper(async ({ id, deletedAt }) => {
+  const { data, error } = await useFetch('/api/todos/' + id + '/archive', { method: 'POST', body: { archive: !deletedAt } })
   if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
   return { data, error }
 })

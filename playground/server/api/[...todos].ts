@@ -98,6 +98,31 @@ const update = oaHandler(async (event: H3Event) => {
   }
 })
 
+const archive = oaHandler(async (event: H3Event) => {
+  const { archive } = await readBody(event)
+  return await Todo.archive(event.context.params.id, archive)
+}, {
+  tags: ['Todo'],
+  summary: 'Archive todo',
+  operationId: 'archiveTodo',
+  parameters: [todoIdInPath],
+  requestBody: {
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            archive: { type: 'boolean' }
+          }
+        }
+      }
+    }
+  },
+  responses: {
+    200: instance200
+  }
+})
+
 const remove = oaHandler(async (event: H3Event) => {
   return await Todo.delete(event.context.params.id)
 }, {
@@ -128,5 +153,6 @@ const remove = oaHandler(async (event: H3Event) => {
 export default createOaRouter('/api/todos')
   .get('/', log, getAll)
   .post('/', log, log2, create)
+  .post('/:id/archive', archive)
   .put('/:id', update)
   .delete('/:id', remove)
