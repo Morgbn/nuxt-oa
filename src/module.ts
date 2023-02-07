@@ -1,6 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { defineNuxtModule, createResolver, addServerHandler } from '@nuxt/kit'
+import consola from 'consola'
 import { defu } from 'defu'
+import chalk from 'chalk'
 
 import type { RuntimeConfig } from '@nuxt/schema'
 import type { ModuleOptions } from './types'
@@ -16,7 +18,7 @@ export default defineNuxtModule<ModuleOptions>({
     openApiPath: '/api-doc/openapi.json',
     swaggerPath: '/api-doc'
   },
-  setup (options, nuxt) {
+  async setup (options, nuxt) {
     options = { ...options, ...nuxt.options.runtimeConfig?.oa as ModuleOptions }
 
     const { resolve } = createResolver(import.meta.url)
@@ -67,6 +69,11 @@ export default defineNuxtModule<ModuleOptions>({
         addServerHandler({
           route: options.swaggerPath,
           handler: resolve('runtime/server/swaggerPage')
+        })
+        const { withTrailingSlash, withoutTrailingSlash } = await import('ufo')
+        nuxt.hook('listen', (_, listener) => {
+          const viewerUrl = `${withoutTrailingSlash(listener.url)}${options.swaggerPath}`
+          consola.log(`  > Swagger:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))}\n`)
         })
       }
     }
