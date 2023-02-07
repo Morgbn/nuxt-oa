@@ -3,6 +3,7 @@ import consola from 'consola'
 import type { Db, Collection } from 'mongodb'
 
 import Model from './helpers/model'
+export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
 
 const config = useRuntimeConfig().oa
 

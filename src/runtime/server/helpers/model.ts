@@ -3,18 +3,27 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
 import type { Collection, ObjectId } from 'mongodb'
-
+import type { Schema } from '../../../types'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 
 const ajv = new Ajv({ removeAdditional: true })
 addFormats(ajv)
 
-type Schema = { [key: string]: any }
 const config = useRuntimeConfig()
 const schemas: Record<string, Schema> = config.schemas
 const cipherAlgo = config.oa.cipherAlgo
 const cipherKey = config.oa.cipherKey
+
+export function cleanSchema (schema: Schema): Schema {
+  schema.type = 'object' //  type must be object
+  delete schema.readonlyProperties
+  delete schema.omitProperties
+  delete schema.encryptedProperties
+  delete schema.trackedProperties
+  delete schema.timestamps
+  return schema
+}
 
 export default class Model {
   name: string
@@ -57,12 +66,8 @@ export default class Model {
     }
     this.timestamps = typeof schema.timestamps === 'boolean' ? schema.timestamps : !!this.trackedProps.length // if tracking props, may need timestamps
 
-    this.schema = { additionalProperties: false, ...schema, type: 'object' } // set additionalProperties to false by default, type must be object
-    delete this.schema.readonlyProperties
-    delete this.schema.omitProperties
-    delete this.schema.encryptedProperties
-    delete this.schema.trackedProperties
-    delete this.schema.timestamps
+    this.schema = { additionalProperties: false, ...schema } // set additionalProperties to false by default
+    cleanSchema(this.schema)
 
     this.validator = ajv.compile(this.schema)
   }

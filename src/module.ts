@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { defineNuxtModule, createResolver } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler } from '@nuxt/kit'
 import { defu } from 'defu'
 
 import type { RuntimeConfig } from '@nuxt/schema'
@@ -12,9 +12,13 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     schemasFolder: 'schemas',
-    cipherAlgo: 'aes-256-gcm'
+    cipherAlgo: 'aes-256-gcm',
+    openApiPath: '/api-doc/openapi.json',
+    swaggerPath: '/api-doc'
   },
   setup (options, nuxt) {
+    options = { ...options, ...nuxt.options.runtimeConfig?.oa as ModuleOptions }
+
     const { resolve } = createResolver(import.meta.url)
     const rootResolver = createResolver(nuxt.options.rootDir)
     const schemasFolderPath = rootResolver.resolve(options.schemasFolder)
@@ -51,6 +55,20 @@ export default defineNuxtModule<ModuleOptions>({
     // Add server composables like useModel
     nuxt.options.nitro.imports = nuxt.options.nitro.imports || {}
     nuxt.options.nitro.imports.presets = nuxt.options.nitro.imports.presets || []
-    nuxt.options.nitro.imports.presets.push({ from: resolve('runtime/server/composables'), imports: ['useDb', 'useCol', 'useObjectId', 'useModel'] })
+    nuxt.options.nitro.imports.presets.push({ from: resolve('runtime/server/composables'), imports: ['useDb', 'useCol', 'useObjectId', 'useModel', 'createOaRouter', 'oaHandler', 'oaComponent'] })
+
+    // Add doc routes
+    if (options.openApiPath) {
+      addServerHandler({
+        route: options.openApiPath,
+        handler: resolve('runtime/server/openApiPage')
+      })
+      if (options.swaggerPath) {
+        addServerHandler({
+          route: options.swaggerPath,
+          handler: resolve('runtime/server/swaggerPage')
+        })
+      }
+    }
   }
 })
