@@ -1,26 +1,132 @@
-const router = createRouter()
+import consola from 'consola'
+import { H3Event } from 'h3'
+
 const Todo = useModel('Todo')
 
-// get all
-router.get('/', defineEventHandler(async () => await Todo.getAll()))
+const log = oaHandler((ev: H3Event) => {
+  consola.log('log::', ev.node.req.method)
+}, (doc: any) => {
+  if (!doc) { return }
+  doc.summary = `${doc.summary || ''} (and log method)`
+})
+const log2 = (ev: H3Event) => consola.log('log::', ev.node.req.url)
 
-// create
-router.post('/', defineEventHandler(async (event) => {
+const instance200 = {
+  description: 'Updated todo.',
+  content: {
+    'application/json': {
+      schema: { $ref: '#/components/schemas/Todo' }
+    }
+  }
+}
+
+const todoIdInPath = {
+  in: 'path',
+  name: 'id',
+  schema: {
+    type: 'string'
+  },
+  required: true,
+  description: 'Object Id of the todo'
+}
+
+const getAll = oaHandler(async () => {
+  return await Todo.getAll()
+}, {
+  tags: ['Todo'],
+  summary: 'Get all todo',
+  operationId: 'getAllTodo',
+  responses: {
+    200: {
+      description: 'List of todo.',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/Todo'
+            }
+          }
+        }
+      }
+    }
+  }
+})
+
+const create = oaHandler(async (event: H3Event) => {
   const body = await readBody(event)
   body.privateN = 0
   return await Todo.create(body)
-}))
+}, {
+  tags: ['Todo'],
+  summary: 'Create todo',
+  operationId: 'createTodo',
+  requestBody: {
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Todo'
+        }
+      }
+    }
+  },
+  responses: {
+    200: instance200
+  }
+})
 
-// update
-router.put('/:id', defineEventHandler(async (event) => {
+const update = oaHandler(async (event: H3Event) => {
   const body = await readBody(event)
   body.privateN = Math.round(Math.random() * 100)
   return await Todo.update(event.context.params.id, body)
-}))
+}, {
+  tags: ['Todo'],
+  summary: 'Update todo',
+  operationId: 'updateTodo',
+  parameters: [todoIdInPath],
+  requestBody: {
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/Todo'
+        }
+      }
+    }
+  },
+  responses: {
+    200: instance200
+  }
+})
 
-// delete
-router.delete('/:id', defineEventHandler(async (event) => {
+const remove = oaHandler(async (event: H3Event) => {
   return await Todo.delete(event.context.params.id)
-}))
+}, {
+  tags: ['Todo'],
+  summary: 'Delete todo',
+  operationId: 'deleteTodo',
+  parameters: [todoIdInPath],
+  responses: {
+    200: {
+      description: 'message if success',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              deletedCount: {
+                type: 'string',
+                default: 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+})
 
-export default useBase('/api/todos', router.handler)
+export default createOaRouter('/api/todos')
+  .get('/', log, getAll)
+  .post('/', log, log2, create)
+  .put('/:id', update)
+  .delete('/:id', remove)
