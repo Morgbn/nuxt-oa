@@ -3,9 +3,11 @@ import { H3Event } from 'h3'
 
 const Todo = useModel('Todo')
 
-Todo.hook('update:after', ({ data }) => {
-  data.propAddedOnHook = 'update:after'
-})
+const setReadOnlyProp = (d: any) => { d.readOnlyProp = 'privateN=' + (d.privateN ?? 0) }
+
+Todo.hook('create:after', ({ data }) => setReadOnlyProp(data))
+
+Todo.hook('update:after', ({ data }) => setReadOnlyProp(data))
 
 const log = oaHandler((ev: H3Event) => {
   consola.log('log::', ev.node.req.method)

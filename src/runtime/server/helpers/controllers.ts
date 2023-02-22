@@ -56,7 +56,6 @@ export const useCreate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    body.privateN = 0
     return await model.create(body)
   }, {
     tags: [name],
@@ -84,7 +83,6 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    body.privateN = Math.round(Math.random() * 100)
     return await model.update(event.context.params.id, body)
   }, {
     tags: [name],
