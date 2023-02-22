@@ -16,15 +16,15 @@
       "format": "date-time"
     },
     "readOnlyProp": {
-      "type": "string"
+      "type": "string",
+      "readOnly": true
     },
     "privateN": {
-      "type": "number"
+      "type": "number",
+      "writeOnly": true
     }
   },
   "required": ["text"],
-  "readonlyProperties": ["readOnlyProp"],
-  "omitProperties": ["privateN"],
   "encryptedProperties": ["text"],
   "trackedProperties": ["text"],
   "timestamps": true

@@ -29,8 +29,6 @@ export function cleanSchema (schema: Schema): Schema {
 export default class Model extends Hookable {
   name: string
   collection: Collection
-  readOnlyProps: string[]
-  omitProps: string[]
   encryptedProps: string[]
   cipherKey: Buffer|undefined
   trackedProps: string[]
@@ -48,8 +46,6 @@ export default class Model extends Hookable {
     this.callHook('collection:ready', { collection: this.collection })
 
     const schema = schemas[name]
-    this.readOnlyProps = Array.isArray(schema.readonlyProperties) ? schema.readonlyProperties : []
-    this.omitProps = Array.isArray(schema.omitProperties) ? schema.omitProperties : [] // props to omit when clean json
     this.encryptedProps = []
     if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
       this.encryptedProps = schema.encryptedProperties
@@ -81,12 +77,41 @@ export default class Model extends Hookable {
    */
   validate (d: Schema) {
     const valid = this.validator(d)
-    for (const key of this.readOnlyProps) { // remove readOnly properties
-      delete d[key]
-    }
     if (!valid) {
       const { errors } = this.validator
       throw createError({ statusCode: 400, statusMessage: 'Bad data', data: { errors } })
+    }
+    this.rmPropsWithAttr(d, 'readOnly')
+  }
+
+  /**
+   * Removes properties if a given attribute is present in the schema
+   * @param d data
+   * @param attr the attribute that triggers the deletion
+   */
+  rmPropsWithAttr (d: Schema, attr: string) {
+    const stack: { el: Schema, schema: Schema, key?: string|number, parent?: Schema}[] = [{ el: d, schema: this.schema }]
+    while (stack.length) {
+      const { el, schema, key, parent } = stack.pop() || {}
+      if (!el || !schema) { continue }
+      if (schema[attr]) {
+        if (parent && key) {
+          delete parent[key]
+        } else { // root
+          Object.keys(d).forEach(key => delete d[key]) // rm all data
+          return
+        }
+        continue
+      }
+      if (schema.type === 'object') {
+        for (const key in schema.properties) {
+          stack.push({ el: el[key], schema: schema.properties[key], key, parent: el })
+        }
+      } else if (schema.type === 'array') {
+        for (let i = 0; i < el.length; i++) {
+          stack.push({ el: el[i], schema: schema.items, key: i, parent: el })
+        }
+      }
     }
   }
 
@@ -117,9 +142,8 @@ export default class Model extends Hookable {
     const data = { ...d, id: d._id }
     delete data._id
     delete data._iv
-    for (const key of this.omitProps) { // remove properties to omit
-      delete data[key]
-    }
+    this.rmPropsWithAttr(data, 'writeOnly') // remove properties to omit
+
     if (this.cipherKey) { // need to decrypt some properties
       for (const key of this.encryptedProps) {
         data[key] = decrypt(data[key], _iv, this.cipherKey, cipherAlgo)
