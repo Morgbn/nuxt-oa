@@ -38,7 +38,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useFetch } from '#imports'
+import { useFetch, useOaSchema } from '#imports'
+
+const schema = useOaSchema('Todo')
 
 const msg = ref(null)
 const msgColor = ref('green')

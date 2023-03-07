@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { defineNuxtModule, createResolver, addServerHandler } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addPluginTemplate } from '@nuxt/kit'
 import consola from 'consola'
 import { defu } from 'defu'
 import chalk from 'chalk'
@@ -76,6 +76,15 @@ export default defineNuxtModule<ModuleOptions>({
           consola.log(`  > Swagger:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))}\n`)
         })
       }
+    }
+
+    // Provide get[ModelName]OaSchema for each schema
+    for (const modelName of Object.keys(schemas)) {
+      addPluginTemplate({
+        filename: `get${modelName}OaSchema.mjs`,
+        src: resolve('runtime/plugins/oaSchema.ejs'),
+        options: { schemasFolderPath, modelName }
+      })
     }
   }
 })

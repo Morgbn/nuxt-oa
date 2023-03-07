@@ -1,0 +1,33 @@
+import { defineNuxtPlugin } from '#imports'
+import schema from <%= `"${options.schemasFolderPath}/${options.modelName}.json"` %>
+
+schema.type = 'object'
+delete schema.encryptedProperties
+delete schema.trackedProperties
+delete schema.timestamps
+
+// remove writeOnly props
+if (schema.writeOnly) {
+  schema = {}
+} else {
+  const stack = []
+  const addToStack = parent => Object.entries(parent).forEach(([key, el]) =>
+    typeof el === 'object' ? stack.push({ key, parent, el }) : 0)
+  addToStack(schema)
+  while(stack.length) {
+    const { parent, key, el } = stack.pop()
+    if (el.writeOnly) {
+      delete parent[key]
+    } else {
+      addToStack(el)
+    }
+  }
+}
+
+export default defineNuxtPlugin((nuxtApp) => {
+  return {
+    provide: {
+      get<%- options.modelName %>OaSchema: schema
+    }
+  }
+})
