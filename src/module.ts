@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { defineNuxtModule, createResolver, addServerHandler, addPluginTemplate } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate } from '@nuxt/kit'
 import consola from 'consola'
 import { defu } from 'defu'
 import chalk from 'chalk'
@@ -86,5 +86,15 @@ export default defineNuxtModule<ModuleOptions>({
         options: { schemasFolderPath, modelName }
       })
     }
+
+    // Add ajfg (auto form generator)
+    addPlugin(resolve('runtime/plugins/ajfg'))
+    addImports([
+      'useOaSchema'
+    ].map(key => ({
+      name: key,
+      as: key,
+      from: resolve('runtime/composables')
+    })))
   }
 })

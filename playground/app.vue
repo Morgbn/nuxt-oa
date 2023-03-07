@@ -8,8 +8,8 @@
       <ul>
         <li v-for="t in todos" :key="t.id">
           {{ t.text }}
-          <button :disabled="t.deletedAt" @click="updateTodo(t)">
-            ♻️
+          <button :disabled="t.deletedAt" @click="openTodo(t)">
+            ✏️
           </button>
           <button @click="archiveTodo(t)">
             🗃️
@@ -22,6 +22,17 @@
           <button>+ Add a todo</button>
         </li>
       </ul>
+      <dialog ref="dialog">
+        <json-schema ref="form" v-model="editedTodo" :schema="schema" />
+        <menu>
+          <button value="cancel" @click="closeTodo">
+            Cancel
+          </button>
+          <button value="default" @click="updateTodo">
+            Save
+          </button>
+        </menu>
+      </dialog>
       <button @click="testWithRandomId">
         Delete with random id
       </button>
@@ -67,9 +78,24 @@ const addTodo = msgWrapper(async () => {
   return { data, error }
 })
 
-const updateTodo = msgWrapper(async ({ id }) => {
-  const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: { text: 'U-' + randStr() } })
+const editedTodo = ref(null)
+const dialog = ref(null)
+const openTodo = (todo) => {
+  dialog.value.showModal()
+  editedTodo.value = JSON.parse(JSON.stringify(todo))
+}
+const closeTodo = () => {
+  dialog.value.close()
+  editedTodo.value = null
+}
+
+const form = ref(null)
+const updateTodo = msgWrapper(async () => {
+  if (!await form.value.validate()) { return }
+  const id = editedTodo.value.id
+  const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: editedTodo.value })
   if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
+  closeTodo()
   return { data, error }
 })
 
@@ -97,3 +123,9 @@ const testWriteReadOnly = msgWrapper(async () =>
   await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { text: todos.value[0].text, readOnlyProp: 'test' } })
 )
 </script>
+
+<style>
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.25);
+}
+</style>
