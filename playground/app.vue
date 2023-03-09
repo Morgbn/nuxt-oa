@@ -73,8 +73,8 @@ const msgWrapper = func => async (d) => {
   msg.value = null
   msgColor.value = 'green'
   const { data, error } = await func(d)
-  msg.value = data.value || error.value
-  if (error.value) {
+  msg.value = data?.value || error?.value || ''
+  if (error?.value) {
     msgColor.value = 'red'
     if (error.value.data?.data) {
       msg.value += '\n' + JSON.stringify(error.value.data.data, '', ' ')
@@ -95,7 +95,7 @@ const closeTodo = () => {
 
 const form = ref(null)
 const updateTodo = msgWrapper(async () => {
-  if (!await form.value.validate()) { return }
+  if (!await form.value.validate()) { return {} }
   const id = editedTodo.value.id
   let path = '/api/todos/'
   let method = 'POST'
