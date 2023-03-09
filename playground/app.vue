@@ -5,23 +5,33 @@
       Loading...
     </p>
     <template v-else>
-      <ul>
-        <li v-for="t in todos" :key="t.id">
-          {{ t.text }}
-          <button :disabled="t.deletedAt" @click="openTodo(t)">
-            ✏️
-          </button>
-          <button @click="archiveTodo(t)">
-            🗃️
-          </button>
-          <button @click="rmTodo(t)">
-            🗑️
-          </button>
-        </li>
-        <li @click="addTodo">
-          <button>+ Add a todo</button>
-        </li>
-      </ul>
+      <button @click="openTodo({ id: 'new' })">
+        + Add a todo
+      </button>
+      <json-list :items="todos" :schema="schema">
+        <template #table-header="{ sortBy }">
+          <div :style="{ display: 'grid', gridTemplateColumns: '100px 1fr',gap: '20px', userSelect: 'none' }">
+            <span>Text {{ sortBy === 'text' ? (sortDesc ? '↑' : '↓') : '' }}</span>
+            <span>Actions</span>
+          </div>
+        </template>
+        <template #item="{ item: t, view }">
+          <div class="item" :style="view === 'card' ? {} : { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '20px' }">
+            <p><b>{{ t.text }}</b></p>
+            <div>
+              <button :disabled="t.deletedAt" @click="openTodo(t)">
+                ✏️
+              </button>
+              <button @click="archiveTodo(t)">
+                🗃️
+              </button>
+              <button @click="rmTodo(t)">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </template>
+      </json-list>
       <dialog ref="dialog">
         <json-schema ref="form" v-model="editedTodo" :schema="schema" />
         <menu>
@@ -72,12 +82,6 @@ const msgWrapper = func => async (d) => {
   }
 }
 
-const addTodo = msgWrapper(async () => {
-  const { data, error } = await useFetch('/api/todos/', { method: 'POST', body: { text: randStr() } })
-  if (!error.value) { todos.value.push(data.value) }
-  return { data, error }
-})
-
 const editedTodo = ref(null)
 const dialog = ref(null)
 const openTodo = (todo) => {
@@ -93,8 +97,22 @@ const form = ref(null)
 const updateTodo = msgWrapper(async () => {
   if (!await form.value.validate()) { return }
   const id = editedTodo.value.id
-  const { data, error } = await useFetch('/api/todos/' + id, { method: 'PUT', body: editedTodo.value })
-  if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
+  let path = '/api/todos/'
+  let method = 'POST'
+  if (id === 'new') {
+    delete editedTodo.value.id
+  } else {
+    path += id
+    method = 'PUT'
+  }
+  const { data, error } = await useFetch(path, { method, body: editedTodo.value })
+  if (!error.value) {
+    if (id === 'new') {
+      todos.value.push(data.value)
+    } else {
+      todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value)
+    }
+  }
   closeTodo()
   return { data, error }
 })
