@@ -87,8 +87,8 @@ export default defineNuxtModule<ModuleOptions>({
       })
     }
 
-    // Add ajfg (auto form generator)
-    addPlugin(resolve('runtime/plugins/ajfg'))
+    // Add j2u (auto form generator)
+    addPlugin(resolve('runtime/plugins/j2u'))
     addImports([
       'useOaSchema'
     ].map(key => ({
