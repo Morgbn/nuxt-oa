@@ -18,11 +18,10 @@ const cipherKey = config.oa.cipherKey
 
 export function cleanSchema (schema: Schema): Schema {
   schema.type = 'object' //  type must be object
-  delete schema.readonlyProperties
-  delete schema.omitProperties
   delete schema.encryptedProperties
   delete schema.trackedProperties
   delete schema.timestamps
+  delete schema.userstamps
   return schema
 }
 
@@ -32,7 +31,8 @@ export default class Model extends Hookable {
   encryptedProps: string[]
   cipherKey: Buffer|undefined
   trackedProps: string[]
-  timestamps: Boolean
+  timestamps: { createdAt?: Boolean, updatedAt?: Boolean }
+  userstamps: { createdBy?: Boolean, updatedBy?: Boolean, deletedBy?: Boolean }
   schema: Schema
   validator: ValidateFunction
 
@@ -63,7 +63,15 @@ export default class Model extends Hookable {
       props.add('updatedAt')
       this.trackedProps = [...props]
     }
-    this.timestamps = typeof schema.timestamps === 'boolean' ? schema.timestamps : !!this.trackedProps.length // if tracking props, may need timestamps
+    this.timestamps = typeof schema.timestamps === 'object'
+      ? schema.timestamps
+      : (!schema.timestamps ? {} : { createdAt: true, updatedAt: true })
+    if (this.trackedProps.length) { // if tracking props
+      this.timestamps.updatedAt = true // need updatedAt
+    }
+    this.userstamps = typeof schema.userstamps === 'object'
+      ? schema.userstamps
+      : (!schema.userstamps ? {} : { createdBy: true, updatedBy: true, deletedBy: true })
 
     this.schema = { additionalProperties: false, ...schema } // set additionalProperties to false by default
     cleanSchema(this.schema)
@@ -173,16 +181,19 @@ export default class Model extends Hookable {
   /**
    * Create a new model instance
    * @param d body (data from user)
+   * @param userId user id
    * @param readOnlyData data from application logic
    */
-  async create (d: Schema, readOnlyData?: Schema) {
+  async create (d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
     await this.callHook('create:before', { data: d })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
-    if (this.timestamps) {
-      data.createdAt = data.updatedAt = new Date()
-    }
+    const at = new Date()
+    if (this.timestamps.createdAt) { data.createdAt = at }
+    if (this.timestamps.updatedAt) { data.updatedAt = at }
+    if (this.userstamps.createdBy) { data.createdBy = userId }
+    if (this.userstamps.updatedBy) { data.updatedBy = userId }
 
     await this.callHook('create:after', { data })
 
@@ -195,17 +206,18 @@ export default class Model extends Hookable {
    * Update a model instance
    * @param id instance id
    * @param d body (data from user)
+   * @param userId user id
    * @param readOnlyData data from application logic
    */
-  async update (id: string | ObjectId, d: Schema, readOnlyData?: Schema) {
+  async update (id: string|ObjectId, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
-    if (this.timestamps) {
-      data.updatedAt = new Date()
-    }
+    if (this.timestamps.updatedAt) { data.updatedAt = new Date() }
+    if (this.userstamps.updatedBy) { data.updatedBy = userId }
+
     const instance = (this.trackedProps.length || this.cipherKey)
       ? await this.collection.findOne({ _id }) as Schema
       : null
@@ -232,12 +244,14 @@ export default class Model extends Hookable {
    * Archive a model instance
    * @param id instance  id
    * @param archive whether to archive or unarchive
+   * @param userId user id
    */
-  async archive (id: string | ObjectId, archive = true) {
+  async archive (id: string|ObjectId, archive = true, userId?: string|ObjectId) {
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id })
 
-    const data = { deletedAt: archive ? new Date() : undefined }
+    const data: Record<string, any> = { deletedAt: archive ? new Date() : undefined }
+    if (this.userstamps.deletedBy) { data.deletedBy = userId }
     await this.callHook('archive:after', { id, _id, data })
 
     const { value } = await this.collection
@@ -252,7 +266,7 @@ export default class Model extends Hookable {
    * Delete a model instance
    * @param id instance id
    */
-  async delete (id: string | ObjectId) {
+  async delete (id: string|ObjectId) {
     const _id = useObjectId(id)
     await this.callHook('delete:before', { id, _id })
 
