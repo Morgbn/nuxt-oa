@@ -57,7 +57,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Add server composables like useModel
     nuxt.options.nitro.imports = nuxt.options.nitro.imports || {}
     nuxt.options.nitro.imports.presets = nuxt.options.nitro.imports.presets || []
-    nuxt.options.nitro.imports.presets.push({ from: resolve('runtime/server/composables'), imports: ['useDb', 'useCol', 'useObjectId', 'useModel', 'createOaRouter', 'oaHandler', 'oaComponent', 'useGetAll', 'useCreate', 'useUpdate', 'useArchive', 'useDelete'] })
+    nuxt.options.nitro.imports.presets.push({ from: resolve('runtime/server/composables'), imports: ['useDb', 'useCol', 'useObjectId', 'useModel', 'createOaRouter', 'oaHandler', 'oaComponent', 'useGetAll', 'useCreate', 'useUpdate', 'useArchive', 'useDelete', 'useUserId'] })
 
     // Add doc routes
     if (options.openApiPath) {

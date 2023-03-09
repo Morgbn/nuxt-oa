@@ -1,6 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb'
 import consola from 'consola'
 import type { Db, Collection } from 'mongodb'
+import type { H3Event } from 'h3'
 
 import Model from './helpers/model'
 export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
@@ -41,4 +42,11 @@ export function useModel (name: string): Model {
     modelsCache[name] = new Model(name)
   }
   return modelsCache[name]
+}
+
+export function useUserId (event: H3Event): string|ObjectId {
+  if (!event.context.user?.id) {
+    throw createError({ statusCode: 400, statusMessage: 'No user.id in event.context' })
+  }
+  return event.context.user.id
 }

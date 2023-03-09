@@ -1,4 +1,6 @@
-import { H3Event, readBody } from 'h3'
+import { readBody } from 'h3'
+import type { H3Event } from 'h3'
+
 import Model from './model'
 import { oaHandler } from './router'
 
@@ -56,7 +58,7 @@ export const useCreate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.create(body)
+    return await model.create(body, useUserId(event))
   }, {
     tags: [name],
     summary: `Create ${lowerName}`,
@@ -83,7 +85,7 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.update(event.context.params.id, body)
+    return await model.update(event.context.params.id, body, useUserId(event))
   }, {
     tags: [name],
     summary: `Update ${lowerName}`,
@@ -111,7 +113,7 @@ export const useArchive = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const { archive } = await readBody(event)
-    return await model.archive(event.context.params.id, archive)
+    return await model.archive(event.context.params.id, archive, useUserId(event))
   }, {
     tags: [name],
     summary: `Archive ${lowerName}`,

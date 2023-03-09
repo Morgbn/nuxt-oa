@@ -26,6 +26,7 @@
   },
   "required": ["text"],
   "encryptedProperties": ["text"],
-  "trackedProperties": ["text"],
-  "timestamps": true
+  "trackedProperties": ["text", "updatedBy"],
+  "timestamps": true,
+  "userstamps": true
 }
