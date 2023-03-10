@@ -26,7 +26,7 @@ export default defineNuxtModule<ModuleOptions>({
     const schemasFolderPath = rootResolver.resolve(options.schemasFolder)
 
     if (!options.dbUrl) {
-      throw new Error('[@nuxtjs/oa] dbUrl is required (mongodb connection string)')
+      consola.warn('[@nuxtjs/oa] dbUrl is required (mongodb connection string)')
     }
 
     if (!existsSync(schemasFolderPath)) {
