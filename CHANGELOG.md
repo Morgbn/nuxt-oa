@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Morgbn/nuxt-oa/compare/v1.0.0...v1.0.1) (2023-03-10)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: rm deletedBy with deletedAt ([c8f5c6f](https://github.com/Morgbn/nuxt-oa/commit/c8f5c6ff05d30c4b588cbc1dc5d1e12a2f592316))
+
 # 1.0.0 (2023-03-10)
 
 
