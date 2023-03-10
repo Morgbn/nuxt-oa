@@ -1,10 +1,8 @@
+import { pathToFileURL } from 'url'
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import consola from 'consola'
-import { defu } from 'defu'
 import chalk from 'chalk'
-
-import type { RuntimeConfig } from '@nuxt/schema'
 import type { ModuleOptions } from './types'
 
 export default defineNuxtModule<ModuleOptions>({
@@ -36,20 +34,21 @@ export default defineNuxtModule<ModuleOptions>({
       throw new Error(`[@nuxtjs/oa] "${options.schemasFolder}" is not a folder`)
     }
 
-    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, options as RuntimeConfig['oa'])
-
     // Read schemas
     const schemasResolver = createResolver(schemasFolderPath)
-    const schemas: Record<string, object> = {}
+    const schemasByName: Record<string, object> = {}
     for (const file of readdirSync(schemasFolderPath)) {
       const name = file.split('.').slice(0, -1).join('.')
       const schema = JSON.parse(readFileSync(schemasResolver.resolve(file), 'utf-8'))
-      schemas[name] = schema
+      schemasByName[name] = schema
     }
-    Object.defineProperty(nuxt.options.runtimeConfig, 'schemas', {
-      value: schemas,
-      enumerable: true
-    })
+
+    nuxt.options.alias['#oa'] = pathToFileURL(addTemplate({
+      filename: 'oa.mjs',
+      write: true,
+      getContents: () => `export const config = ${JSON.stringify(options, null, 2)}\n\n` +
+      `export const schemasByName = ${JSON.stringify(schemasByName, null, 2)}\n`
+    }).dst || '').href
 
     // Transpile runtime
     nuxt.options.build.transpile.push(resolve('runtime'))
@@ -79,7 +78,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Provide get[ModelName]OaSchema for each schema
-    for (const modelName of Object.keys(schemas)) {
+    for (const modelName of Object.keys(schemasByName)) {
       addPluginTemplate({
         filename: `get${modelName}OaSchema.mjs`,
         src: resolve('runtime/plugins/oaSchema.ejs'),

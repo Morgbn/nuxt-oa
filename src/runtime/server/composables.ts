@@ -4,10 +4,10 @@ import type { Db, Collection } from 'mongodb'
 import type { H3Event } from 'h3'
 
 import Model from './helpers/model'
+import { config } from '#oa'
+
 export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
 export { useGetAll, useCreate, useUpdate, useArchive, useDelete } from './helpers/controllers'
-
-const config = useRuntimeConfig().oa
 
 const client = new MongoClient(config.dbUrl)
 client.connect()

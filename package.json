@@ -28,7 +28,6 @@
     "ajv-formats": "^2.1.1",
     "chalk": "^5.2.0",
     "consola": "^2.15.3",
-    "defu": "^6.1.2",
     "hookable": "^5.4.2",
     "j2u": "1.x",
     "mongodb": "^4.13.0",

@@ -1,6 +1,5 @@
 import { defineEventHandler } from 'h3'
-
-const config = useRuntimeConfig().oa
+import { config } from '#oa'
 
 export default defineEventHandler(event => `<html>
   <head>

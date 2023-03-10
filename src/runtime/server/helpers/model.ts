@@ -7,14 +7,13 @@ import { Hookable } from 'hookable'
 import type { Schema } from '../../../types'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
+import { config, schemasByName } from '#oa'
 
 const ajv = new Ajv({ removeAdditional: true })
 addFormats(ajv)
 
-const config = useRuntimeConfig()
-const schemas: Record<string, Schema> = config.schemas
-const cipherAlgo = config.oa.cipherAlgo
-const cipherKey = config.oa.cipherKey
+const cipherAlgo = config.cipherAlgo
+const cipherKey = config.cipherKey
 
 export function cleanSchema (schema: Schema): Schema {
   schema.type = 'object' //  type must be object
@@ -38,14 +37,14 @@ export default class Model extends Hookable {
 
   constructor (name: string) {
     super()
-    if (!schemas[name]) {
+    if (!schemasByName[name]) {
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
     this.collection = useCol(pluralize(name))
     this.callHook('collection:ready', { collection: this.collection })
 
-    const schema = schemas[name]
+    const schema: Schema = schemasByName[name]
     this.encryptedProps = []
     if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
       this.encryptedProps = schema.encryptedProperties

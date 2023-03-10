@@ -2,9 +2,9 @@ import { defineEventHandler, setHeader } from 'h3'
 import type { Schema } from '../../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
+import { config, schemasByName } from '#oa'
 
-const config = useRuntimeConfig().oa
-const schemas = Object.entries(useRuntimeConfig().schemas)
+const schemas = Object.entries(schemasByName)
   .reduce((o: Record<string, Schema>, [key, schema]) => {
     o[key] = cleanSchema({ ...schema as Schema })
     return o
