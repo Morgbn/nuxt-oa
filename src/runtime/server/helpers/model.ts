@@ -250,7 +250,7 @@ export default class Model extends Hookable {
     await this.callHook('archive:before', { id, _id })
 
     const data: Record<string, any> = { deletedAt: archive ? new Date() : undefined }
-    if (this.userstamps.deletedBy) { data.deletedBy = userId }
+    if (this.userstamps.deletedBy) { data.deletedBy = archive ? userId : undefined }
     await this.callHook('archive:after', { id, _id, data })
 
     const { value } = await this.collection
