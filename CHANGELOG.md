@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/Morgbn/nuxt-oa/compare/v1.0.1...v1.0.2) (2023-03-14)
+
+
+### Bug Fixes
+
+* :arrow_up: upgrade ajv-formats to ^3.0.0-rc.0 ([40d2b70](https://github.com/Morgbn/nuxt-oa/commit/40d2b70f152cf62ab23dfcad0f27a861876d4b7e))
+
 ## [1.0.1](https://github.com/Morgbn/nuxt-oa/compare/v1.0.0...v1.0.1) (2023-03-10)
 
 
