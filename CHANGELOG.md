@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/Morgbn/nuxt-oa/compare/v1.0.2...v1.0.3) (2023-03-21)
+
+
+### Bug Fixes
+
+* :bug: import useBase from h3 ([06f7bf8](https://github.com/Morgbn/nuxt-oa/commit/06f7bf8ca808606e656962ea3654b121e0f825c5))
+
 ## [1.0.2](https://github.com/Morgbn/nuxt-oa/compare/v1.0.1...v1.0.2) (2023-03-14)
 
 
