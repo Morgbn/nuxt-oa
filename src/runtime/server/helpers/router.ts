@@ -1,4 +1,4 @@
-import { createRouter, eventHandler } from 'h3'
+import { createRouter, eventHandler, useBase } from 'h3'
 import type { CreateRouterOptions, EventHandler } from 'h3'
 
 const methods = ['get', 'head', 'patch', 'post', 'put', 'delete', 'connect', 'options', 'trace'] as const
