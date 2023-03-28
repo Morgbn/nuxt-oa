@@ -1,6 +1,9 @@
 import consola from 'consola'
 import { H3Event } from 'h3'
 
+const Layer = useModel('Layer')
+consola.log(Layer.name) // model from layer base
+
 const Todo = useModel('Todo')
 
 const auth = oaHandler((ev: H3Event) => {

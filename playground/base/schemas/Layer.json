@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20
+    }
+  },
+  "required": ["text"],
+  "encryptedProperties": ["text"],
+  "trackedProperties": ["text", "updatedBy"],
+  "timestamps": true
+}

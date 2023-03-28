@@ -1,9 +1,10 @@
 import { pathToFileURL } from 'url'
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
-import consola from 'consola'
+import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
 import type { ModuleOptions } from './types'
+
+const logger = useLogger('nuxt-oa')
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -19,28 +20,32 @@ export default defineNuxtModule<ModuleOptions>({
   async setup (options, nuxt) {
     options = { ...options, ...nuxt.options.runtimeConfig?.oa as ModuleOptions }
 
-    const { resolve } = createResolver(import.meta.url)
-    const rootResolver = createResolver(nuxt.options.rootDir)
-    const schemasFolderPath = rootResolver.resolve(options.schemasFolder)
+    const schemasByName: Record<string, object> = {}
+    const schemasFolderPathByName: Record<string, string> = {}
+    for (const layer of nuxt.options._layers) {
+      const { oa } = layer.config
+      if (oa) {
+        if (!options.dbUrl) { options.dbUrl = oa.dbUrl } // earlier = higher priority
+        if (!options.openApiPath) { options.openApiPath = oa.openApiPath }
+        if (!options.swaggerPath) { options.swaggerPath = oa.swaggerPath }
+      }
+      const layerResolver = createResolver(layer.cwd)
+      const schemasFolderPath = layerResolver.resolve(oa?.schemasFolder ?? options.schemasFolder)
+      if (!existsSync(schemasFolderPath)) { continue }
+      if (!lstatSync(schemasFolderPath).isDirectory()) { continue }
+      const schemasResolver = createResolver(schemasFolderPath)
+      for (const file of readdirSync(schemasFolderPath)) { // Read schemas
+        const name = file.split('.').slice(0, -1).join('.')
+        const schema = JSON.parse(readFileSync(schemasResolver.resolve(file), 'utf-8'))
+        if (!schemasByName[name]) { // earlier = higher priority
+          schemasByName[name] = schema
+          schemasFolderPathByName[name] = schemasFolderPath
+        }
+      }
+    }
 
     if (!options.dbUrl) {
-      consola.warn('[@nuxtjs/oa] dbUrl is required (mongodb connection string)')
-    }
-
-    if (!existsSync(schemasFolderPath)) {
-      throw new Error(`[@nuxtjs/oa] Can't find folder "${options.schemasFolder}"`)
-    }
-    if (!lstatSync(schemasFolderPath).isDirectory()) {
-      throw new Error(`[@nuxtjs/oa] "${options.schemasFolder}" is not a folder`)
-    }
-
-    // Read schemas
-    const schemasResolver = createResolver(schemasFolderPath)
-    const schemasByName: Record<string, object> = {}
-    for (const file of readdirSync(schemasFolderPath)) {
-      const name = file.split('.').slice(0, -1).join('.')
-      const schema = JSON.parse(readFileSync(schemasResolver.resolve(file), 'utf-8'))
-      schemasByName[name] = schema
+      logger.warn('@nuxtjs/oa dbUrl is required (mongodb connection string)')
     }
 
     nuxt.options.alias['#oa'] = pathToFileURL(addTemplate({
@@ -51,6 +56,7 @@ export default defineNuxtModule<ModuleOptions>({
     }).dst || '').href
 
     // Transpile runtime
+    const { resolve } = createResolver(import.meta.url)
     nuxt.options.build.transpile.push(resolve('runtime'))
 
     // Add server composables like useModel
@@ -72,7 +78,8 @@ export default defineNuxtModule<ModuleOptions>({
         const { withTrailingSlash, withoutTrailingSlash } = await import('ufo')
         nuxt.hook('listen', (_, listener) => {
           const viewerUrl = `${withoutTrailingSlash(listener.url)}${options.swaggerPath}`
-          consola.log(`  > Swagger:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))}\n`)
+          logger.log(`  > Swagger:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))} ` +
+            `${chalk.gray(`${Object.keys(schemasByName).length} schema(s) found`)}\n`)
         })
       }
     }
@@ -82,7 +89,7 @@ export default defineNuxtModule<ModuleOptions>({
       addPluginTemplate({
         filename: `get${modelName}OaSchema.mjs`,
         src: resolve('runtime/plugins/oaSchema.ejs'),
-        options: { schemasFolderPath, modelName }
+        options: { schemasFolderPath: schemasFolderPathByName[modelName], modelName }
       })
     }
 
