@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Morgbn/nuxt-oa/compare/v1.0.3...v1.0.4) (2023-03-28)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: nuxt layers friendly ([ee3c725](https://github.com/Morgbn/nuxt-oa/commit/ee3c7252bf822b6d1c854175102b62c04ba2612a))
+
 ## [1.0.3](https://github.com/Morgbn/nuxt-oa/compare/v1.0.2...v1.0.3) (2023-03-21)
 
 
