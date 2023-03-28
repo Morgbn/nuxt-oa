@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/Morgbn/nuxt-oa/compare/v1.0.4...v1.0.5) (2023-03-28)
+
+
+### Bug Fixes
+
+* :bug: import composables ([52d03a2](https://github.com/Morgbn/nuxt-oa/commit/52d03a25673ed061ad04a3afe28486481c026cae))
+
 ## [1.0.4](https://github.com/Morgbn/nuxt-oa/compare/v1.0.3...v1.0.4) (2023-03-28)
 
 
