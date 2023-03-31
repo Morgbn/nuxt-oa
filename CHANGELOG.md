@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Morgbn/nuxt-oa/compare/v1.0.5...v1.1.0) (2023-03-31)
+
+
+### Features
+
+* :sparkles: auto types generation from schemas ([5f43734](https://github.com/Morgbn/nuxt-oa/commit/5f43734123f2c06600ef85a79e2f6286fabae552))
+
 ## [1.0.5](https://github.com/Morgbn/nuxt-oa/compare/v1.0.4...v1.0.5) (2023-03-28)
 
 
