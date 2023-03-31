@@ -2,6 +2,7 @@ import { pathToFileURL } from 'url'
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
+import genTypes from './typeGenerator'
 import type { ModuleOptions } from './types'
 
 const logger = useLogger('nuxt-oa')
@@ -85,7 +86,7 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Provide get[ModelName]OaSchema for each schema
-    for (const modelName of Object.keys(schemasByName)) {
+    for (const modelName in schemasByName) {
       addPluginTemplate({
         filename: `get${modelName}OaSchema.mjs`,
         src: resolve('runtime/plugins/oaSchema.ejs'),
@@ -102,5 +103,14 @@ export default defineNuxtModule<ModuleOptions>({
       as: key,
       from: resolve('runtime/composables')
     })))
+
+    // Add types
+    const typesPath = addTemplate({
+      filename: 'types/nuxt-oa.d.ts',
+      getContents: () => genTypes(schemasByName)
+    }).dst
+    nuxt.hook('prepare:types', (options) => {
+      options.references.push({ path: typesPath })
+    })
   }
 })

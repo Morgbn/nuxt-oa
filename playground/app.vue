@@ -5,11 +5,11 @@
       Loading...
     </p>
     <template v-else>
-      <button @click="openTodo({ id: 'new' })">
+      <button @click="openTodo({ id: 'new', text: '' })">
         + Add a todo
       </button>
       <json-list :items="todos" :schema="schema">
-        <template #table-header="{ sortBy }">
+        <template #table-header="{ sortBy, sortDesc }">
           <div :style="{ display: 'grid', gridTemplateColumns: '100px 1fr',gap: '20px', userSelect: 'none' }">
             <span>Text {{ sortBy === 'text' ? (sortDesc ? '↑' : '↓') : '' }}</span>
             <span>Actions</span>
@@ -57,19 +57,19 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { ref } from 'vue'
 import { useFetch, useOaSchema } from '#imports'
 
 const schema = useOaSchema('Todo')
 
-const msg = ref(null)
+const msg = ref<string|null>(null)
 const msgColor = ref('green')
 const { data: todos, pending } = await useFetch('/api/todos', { lazy: true })
 
 const randStr = (base = 36) => Math.random().toString(base).slice(3, 9)
 
-const msgWrapper = func => async (d) => {
+const msgWrapper = (func: Function) => async (d: Record<string, any>) => {
   msg.value = null
   msgColor.value = 'green'
   const { data, error } = await func(d)
@@ -77,14 +77,14 @@ const msgWrapper = func => async (d) => {
   if (error?.value) {
     msgColor.value = 'red'
     if (error.value.data?.data) {
-      msg.value += '\n' + JSON.stringify(error.value.data.data, '', ' ')
+      msg.value += '\n' + JSON.stringify(error.value.data.data, null, ' ')
     }
   }
 }
 
-const editedTodo = ref(null)
-const dialog = ref(null)
-const openTodo = (todo) => {
+const editedTodo = ref<OaTodo|null>(null)
+const dialog = ref<any>(null)
+const openTodo = (todo: OaTodo) => {
   dialog.value.showModal()
   editedTodo.value = JSON.parse(JSON.stringify(todo))
 }
@@ -93,12 +93,13 @@ const closeTodo = () => {
   editedTodo.value = null
 }
 
-const form = ref(null)
+const form = ref<any>(null)
 const updateTodo = msgWrapper(async () => {
   if (!await form.value.validate()) { return {} }
+  if (!editedTodo.value) { return }
   const id = editedTodo.value.id
   let path = '/api/todos/'
-  let method = 'POST'
+  let method: 'POST'|'PUT' = 'POST'
   if (id === 'new') {
     delete editedTodo.value.id
   } else {
@@ -110,22 +111,22 @@ const updateTodo = msgWrapper(async () => {
     if (id === 'new') {
       todos.value.push(data.value)
     } else {
-      todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value)
+      todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value)
     }
   }
   closeTodo()
   return { data, error }
 })
 
-const archiveTodo = msgWrapper(async ({ id, deletedAt }) => {
+const archiveTodo = msgWrapper(async ({ id, deletedAt }: OaTodo) => {
   const { data, error } = await useFetch('/api/todos/' + id + '/archive', { method: 'POST', body: { archive: !deletedAt } })
-  if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1, data.value) }
+  if (!error.value) { todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value) }
   return { data, error }
 })
 
-const rmTodo = msgWrapper(async ({ id }) => {
+const rmTodo = msgWrapper(async ({ id }: OaTodo) => {
   const { data, error } = await useFetch('/api/todos/' + id, { method: 'DELETE' })
-  if (!error.value) { todos.value.splice(todos.value.findIndex(t => t.id === id), 1) }
+  if (!error.value) { todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1) }
   return { data, error }
 })
 
