@@ -103,9 +103,9 @@ export default function typeGenerator (schemasByName: Schema): string {
 
     const tStr = { type: 'string' }
     const tDate = { format: 'date' }
-    schema.properties.id = { type: 'string' }
+    schema.properties = { id: { type: 'string' }, ...schema.properties }
     if (!schema.properties.required) { schema.properties.required = [] }
-    schema.properties.required.push('id')
+    schema.required.push('id')
 
     if (schema.timestamps) {
       const timestamps = typeof schema.timestamps === 'object'
