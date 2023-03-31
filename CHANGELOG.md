@@ -1,3 +1,11 @@
+## [1.1.2](https://github.com/Morgbn/nuxt-oa/compare/v1.1.1...v1.1.2) (2023-03-31)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: useObjectId throw error if id is undefined ([e3ce3f2](https://github.com/Morgbn/nuxt-oa/commit/e3ce3f2bb22f7691353bbed125ada1ec2c5290ea))
+* :label: put id on top and required ([3f587c5](https://github.com/Morgbn/nuxt-oa/commit/3f587c5fc21b130fd1dc63e173d9447ea64f885e))
+
 ## [1.1.1](https://github.com/Morgbn/nuxt-oa/compare/v1.1.0...v1.1.1) (2023-03-31)
 
 
