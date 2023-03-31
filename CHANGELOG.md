@@ -1,3 +1,11 @@
+## [1.1.1](https://github.com/Morgbn/nuxt-oa/compare/v1.1.0...v1.1.1) (2023-03-31)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: make id required in model interface ([094c4db](https://github.com/Morgbn/nuxt-oa/commit/094c4db1125b0408dfd697ded31a7059f7087093))
+* :label: add Date type  for 'date*' format ([24733af](https://github.com/Morgbn/nuxt-oa/commit/24733af26baddb272516cbe2eec72096d4c67360))
+
 # [1.1.0](https://github.com/Morgbn/nuxt-oa/compare/v1.0.5...v1.1.0) (2023-03-31)
 
 
