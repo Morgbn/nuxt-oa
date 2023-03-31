@@ -11,6 +11,9 @@ function simpliestType (schema: Schema, interfaceName: string, stack: Stack): st
     stack.push([schema, interfaceName])
     return interfaceName
   }
+  if (schema.format === 'date' || schema.format === 'date-time') {
+    return `${schema.type ?? 'string'}|Date`
+  }
   return schema.type ?? 'any'
 }
 
@@ -99,14 +102,15 @@ export default function typeGenerator (schemasByName: Schema): string {
     const schema = schemasByName[modelName]
 
     const tStr = { type: 'string' }
-    schema.properties.id = tStr
+    const tDate = { format: 'date' }
+    schema.properties.id = { type: 'string' }
     if (!schema.properties.required) { schema.properties.required = [] }
     schema.properties.required.push('id')
 
     if (schema.timestamps) {
       const timestamps = typeof schema.timestamps === 'object'
         ? schema.timestamps
-        : (!schema.timestamps ? {} : { createdAt: tStr, updatedAt: tStr, deletedAt: tStr })
+        : (!schema.timestamps ? {} : { createdAt: tDate, updatedAt: tDate, deletedAt: tDate })
       schema.properties = { ...schema.properties, ...timestamps }
       delete schema.timestamps
     }
@@ -120,7 +124,7 @@ export default function typeGenerator (schemasByName: Schema): string {
     }
     const trackedProps = schema.trackedProperties?.map((prop: string) => `'${prop}'`).join(' | ')
     if (trackedProps) {
-      schema.properties.updatedAt = tStr
+      schema.properties.updatedAt = tDate
       schema.properties.updates = {
         description: 'Keeps track of some updated properties',
         type: `Pick<${typeName}, ${trackedProps} | 'updatedAt'>[]`
