@@ -1,6 +1,7 @@
 import { readBody } from 'h3'
 import type { H3Event } from 'h3'
 
+import { useUserId } from '../composables'
 import Model from './model'
 import { oaHandler } from './router'
 
@@ -85,7 +86,7 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.update(event.context.params.id, body, useUserId(event))
+    return await model.update(event.context.params?.id, body, useUserId(event))
   }, {
     tags: [name],
     summary: `Update ${lowerName}`,
@@ -113,7 +114,7 @@ export const useArchive = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const { archive } = await readBody(event)
-    return await model.archive(event.context.params.id, archive, useUserId(event))
+    return await model.archive(event.context.params?.id, archive, useUserId(event))
   }, {
     tags: [name],
     summary: `Archive ${lowerName}`,
@@ -143,7 +144,7 @@ export const useDelete = (model: Model, apiDoc = {}) => {
   const lowerName = name.toLowerCase()
 
   return oaHandler(async (event: H3Event) => {
-    return await model.delete(event.context.params.id)
+    return await model.delete(event.context.params?.id)
   }, {
     tags: [name],
     summary: `Delete ${lowerName}`,

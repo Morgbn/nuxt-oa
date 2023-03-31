@@ -29,8 +29,8 @@ export function useCol (name: string, aDb?: Db): Collection {
   return (aDb ?? db).collection(name)
 }
 
-export function useObjectId (id: number | string | ObjectId | Buffer): ObjectId {
-  if (!ObjectId.isValid(id)) {
+export function useObjectId (id: number | string | ObjectId | Buffer | undefined): ObjectId {
+  if (!id || !ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Bad id' })
   }
   return new ObjectId(id)

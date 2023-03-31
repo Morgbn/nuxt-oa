@@ -210,7 +210,7 @@ export default class Model extends Hookable {
    * @param userId user id
    * @param readOnlyData data from application logic
    */
-  async update (id: string|ObjectId, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
+  async update (id: string|ObjectId|undefined, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d })
 
@@ -247,7 +247,7 @@ export default class Model extends Hookable {
    * @param archive whether to archive or unarchive
    * @param userId user id
    */
-  async archive (id: string|ObjectId, archive = true, userId?: string|ObjectId) {
+  async archive (id: string|ObjectId|undefined, archive = true, userId?: string|ObjectId) {
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id })
 
@@ -267,7 +267,7 @@ export default class Model extends Hookable {
    * Delete a model instance
    * @param id instance id
    */
-  async delete (id: string|ObjectId) {
+  async delete (id: string|ObjectId|undefined) {
     const _id = useObjectId(id)
     await this.callHook('delete:before', { id, _id })
 
