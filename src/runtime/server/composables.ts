@@ -1,3 +1,4 @@
+import { createError } from 'h3'
 import { MongoClient, ObjectId } from 'mongodb'
 import consola from 'consola'
 import type { Db, Collection } from 'mongodb'
