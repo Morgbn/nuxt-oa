@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/Morgbn/nuxt-oa/compare/v1.1.2...v1.2.0) (2023-04-04)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: add default "required" to schema ([3944cd2](https://github.com/Morgbn/nuxt-oa/commit/3944cd27c7edaec8cc4363d978c92cdfea110381))
+* :bug: add missing import ([9ca921c](https://github.com/Morgbn/nuxt-oa/commit/9ca921cda745f7c85618eb505c2270b0b8e49a89))
+
+
+### Features
+
+* :sparkles: add done hook ([a3a7395](https://github.com/Morgbn/nuxt-oa/commit/a3a7395138eb045aad295effbc48136de2ce4790))
+
 ## [1.1.2](https://github.com/Morgbn/nuxt-oa/compare/v1.1.1...v1.1.2) (2023-03-31)
 
 
