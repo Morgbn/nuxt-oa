@@ -200,7 +200,10 @@ export default class Model extends Hookable {
 
     this.encrypt(data)
     const { insertedId } = await this.collection.insertOne(data)
-    return this.cleanJSON({ _id: insertedId, ...data })
+
+    const json = this.cleanJSON({ _id: insertedId, ...data })
+    await this.callHook('create:done', json)
+    return json
   }
 
   /**
@@ -238,7 +241,10 @@ export default class Model extends Hookable {
     if (!value) {
       throw createError({ statusCode: 404, statusMessage: 'Document not found' })
     }
-    return this.cleanJSON(value)
+
+    const json = this.cleanJSON(value)
+    await this.callHook('update:done', json)
+    return json
   }
 
   /**
@@ -260,7 +266,10 @@ export default class Model extends Hookable {
     if (!value) {
       throw createError({ statusCode: 404, statusMessage: 'Document not found' })
     }
-    return this.cleanJSON(value)
+
+    const json = this.cleanJSON(value)
+    await this.callHook('archive:done', json)
+    return json
   }
 
   /**
@@ -272,6 +281,8 @@ export default class Model extends Hookable {
     await this.callHook('delete:before', { id, _id })
 
     const { deletedCount } = await this.collection.deleteOne({ _id })
+
+    await this.callHook('archive:done', { id, deletedCount })
     return { deletedCount }
   }
 }
