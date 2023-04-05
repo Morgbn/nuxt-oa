@@ -86,7 +86,7 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.update(event.context.params?.id, body, useUserId(event), event)
+    return await model.update(event.context.params?.id, body, useUserId(event), null, event)
   }, {
     tags: [name],
     summary: `Update ${lowerName}`,
