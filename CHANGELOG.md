@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Morgbn/nuxt-oa/compare/v1.2.0...v1.2.1) (2023-04-05)
+
+
+### Bug Fixes
+
+* :pencil2: delete callHook ([b09e0bc](https://github.com/Morgbn/nuxt-oa/commit/b09e0bc43655ff1d09d7d9f19fee099718698f8f))
+
 # [1.2.0](https://github.com/Morgbn/nuxt-oa/compare/v1.1.2...v1.2.0) (2023-04-04)
 
 
