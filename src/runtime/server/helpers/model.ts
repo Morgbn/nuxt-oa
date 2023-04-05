@@ -5,10 +5,12 @@ import type { ValidateFunction } from 'ajv'
 import type { Collection, ObjectId } from 'mongodb'
 import { Hookable } from 'hookable'
 import { createError } from 'h3'
+import type { H3Event } from 'h3'
 import type { Schema } from '../../../types'
 import { useCol, useObjectId } from '../composables'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
+// @ts-ignore
 import { config, schemasByName } from '#oa'
 
 const ajv = new Ajv({ removeAdditional: true })
@@ -172,8 +174,10 @@ export default class Model extends Hookable {
 
   /**
    * Get all instances of the model
+   * @param event incoming request
    */
-  async getAll () {
+  async getAll (event?: H3Event) {
+    await this.callHook('getAll:before', { event })
     const hookClean = await this.callHook('getAll') ?? ((el: object) => this.cleanJSON(el))
     return (await this.collection.find({}).toArray())
       .map(hookClean)
@@ -184,9 +188,10 @@ export default class Model extends Hookable {
    * @param d body (data from user)
    * @param userId user id
    * @param readOnlyData data from application logic
+   * @param event incoming request
    */
-  async create (d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
-    await this.callHook('create:before', { data: d })
+  async create (d: Schema, userId?: string|ObjectId, readOnlyData?: Schema|null, event?: H3Event) {
+    await this.callHook('create:before', { data: d, event })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
@@ -196,13 +201,13 @@ export default class Model extends Hookable {
     if (this.userstamps.createdBy) { data.createdBy = userId }
     if (this.userstamps.updatedBy) { data.updatedBy = userId }
 
-    await this.callHook('create:after', { data })
+    await this.callHook('create:after', { data, event })
 
     this.encrypt(data)
     const { insertedId } = await this.collection.insertOne(data)
 
     const json = this.cleanJSON({ _id: insertedId, ...data })
-    await this.callHook('create:done', json)
+    await this.callHook('create:done', json, event)
     return json
   }
 
@@ -212,10 +217,11 @@ export default class Model extends Hookable {
    * @param d body (data from user)
    * @param userId user id
    * @param readOnlyData data from application logic
+   * @param event incoming request
    */
-  async update (id: string|ObjectId|undefined, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema) {
+  async update (id: string|ObjectId|undefined, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema|null, event?: H3Event) {
     const _id = useObjectId(id)
-    await this.callHook('update:before', { id, _id, data: d })
+    await this.callHook('update:before', { id, _id, data: d, event })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
@@ -230,7 +236,7 @@ export default class Model extends Hookable {
       data.updates = [...(instance.updates || []), update]
     }
 
-    await this.callHook('update:after', { id, _id, data })
+    await this.callHook('update:after', { id, _id, data, event })
 
     if (this.cipherKey && instance) {
       data._iv = instance._iv
@@ -243,7 +249,7 @@ export default class Model extends Hookable {
     }
 
     const json = this.cleanJSON(value)
-    await this.callHook('update:done', json)
+    await this.callHook('update:done', json, event)
     return json
   }
 
@@ -252,14 +258,15 @@ export default class Model extends Hookable {
    * @param id instance  id
    * @param archive whether to archive or unarchive
    * @param userId user id
+   * @param event incoming request
    */
-  async archive (id: string|ObjectId|undefined, archive = true, userId?: string|ObjectId) {
+  async archive (id: string|ObjectId|undefined, archive = true, userId?: string|ObjectId, event?: H3Event) {
     const _id = useObjectId(id)
-    await this.callHook('archive:before', { id, _id })
+    await this.callHook('archive:before', { id, _id, event })
 
     const data: Record<string, any> = { deletedAt: archive ? new Date() : undefined }
     if (this.userstamps.deletedBy) { data.deletedBy = archive ? userId : undefined }
-    await this.callHook('archive:after', { id, _id, data })
+    await this.callHook('archive:after', { id, _id, data, event })
 
     const { value } = await this.collection
       .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
@@ -268,21 +275,22 @@ export default class Model extends Hookable {
     }
 
     const json = this.cleanJSON(value)
-    await this.callHook('archive:done', json)
+    await this.callHook('archive:done', json, event)
     return json
   }
 
   /**
    * Delete a model instance
    * @param id instance id
+   * @param event incoming request
    */
-  async delete (id: string|ObjectId|undefined) {
+  async delete (id: string|ObjectId|undefined, event?: H3Event) {
     const _id = useObjectId(id)
-    await this.callHook('delete:before', { id, _id })
+    await this.callHook('delete:before', { id, _id, event })
 
     const { deletedCount } = await this.collection.deleteOne({ _id })
 
-    await this.callHook('delete:done', { id, deletedCount })
+    await this.callHook('delete:done', { id, deletedCount, event })
     return { deletedCount }
   }
 }

@@ -28,8 +28,8 @@ export const useGetAll = (model: Model, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
-  return oaHandler(async () => {
-    return await model.getAll()
+  return oaHandler(async (event: H3Event) => {
+    return await model.getAll(event)
   }, {
     tags: [name],
     summary: `Get all ${lowerName}`,
@@ -59,7 +59,7 @@ export const useCreate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.create(body, useUserId(event))
+    return await model.create(body, useUserId(event), null, event)
   }, {
     tags: [name],
     summary: `Create ${lowerName}`,
@@ -86,7 +86,7 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const body = await readBody(event)
-    return await model.update(event.context.params?.id, body, useUserId(event))
+    return await model.update(event.context.params?.id, body, useUserId(event), event)
   }, {
     tags: [name],
     summary: `Update ${lowerName}`,
@@ -114,7 +114,7 @@ export const useArchive = (model: Model, apiDoc = {}) => {
 
   return oaHandler(async (event: H3Event) => {
     const { archive } = await readBody(event)
-    return await model.archive(event.context.params?.id, archive, useUserId(event))
+    return await model.archive(event.context.params?.id, archive, useUserId(event), event)
   }, {
     tags: [name],
     summary: `Archive ${lowerName}`,
@@ -144,7 +144,7 @@ export const useDelete = (model: Model, apiDoc = {}) => {
   const lowerName = name.toLowerCase()
 
   return oaHandler(async (event: H3Event) => {
-    return await model.delete(event.context.params?.id)
+    return await model.delete(event.context.params?.id, event)
   }, {
     tags: [name],
     summary: `Delete ${lowerName}`,
