@@ -282,7 +282,7 @@ export default class Model extends Hookable {
 
     const { deletedCount } = await this.collection.deleteOne({ _id })
 
-    await this.callHook('archive:done', { id, deletedCount })
+    await this.callHook('delete:done', { id, deletedCount })
     return { deletedCount }
   }
 }
