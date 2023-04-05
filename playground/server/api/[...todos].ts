@@ -17,7 +17,7 @@ const setReadOnlyProp = (d: any) => { d.readOnlyProp = 'privateN=' + (d.privateN
 Todo.hook('create:after', ({ data }) => setReadOnlyProp(data))
 
 Todo.hook('update:after', ({ data }) => setReadOnlyProp(data))
-Todo.hook('archive:done', ({ event }) => consola.log(`Todo #${event.context.params.id} archived`))
+Todo.hook('archive:done', ({ event }) => consola.log(`Todo #${event?.context.params?.id} archived`))
 
 const log = oaHandler((ev: H3Event) => {
   consola.log('log::', ev.node.req.method)

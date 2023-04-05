@@ -19,6 +19,27 @@ addFormats(ajv)
 const cipherAlgo = config.cipherAlgo
 const cipherKey = config.cipherKey
 
+type HookResult = Promise<void> | void
+type HookArgData = { data: Schema }
+type HookArgEv = { event?: H3Event }
+type HookArgIds = { id: string|ObjectId|undefined, _id: ObjectId }
+export interface ModelNuxtOaHooks {
+  'collection:ready': ({ collection }: { collection: Collection }) => HookResult
+  'model:cleanJSON': (d: HookArgData) => HookResult
+  'getAll:before': (d: HookArgEv) => HookResult
+  'create:before': (d: HookArgData & HookArgEv) => HookResult
+  'create:after': (d: HookArgData & HookArgEv) => HookResult
+  'create:done': (d: HookArgData & HookArgEv) => HookResult
+  'update:before': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
+  'update:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
+  'update:done': (d: HookArgData & HookArgEv) => HookResult
+  'archive:before': (d: HookArgEv & HookArgIds) => HookResult
+  'archive:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
+  'archive:done': (d: HookArgData & HookArgEv) => HookResult
+  'delete:before': (d: HookArgEv & HookArgIds) => HookResult
+  'delete:done': (d: HookArgData & HookArgEv & { deletedCount: number }) => HookResult
+}
+
 export function cleanSchema (schema: Schema): Schema {
   schema.type = 'object' //  type must be object
   delete schema.encryptedProperties
@@ -28,7 +49,7 @@ export function cleanSchema (schema: Schema): Schema {
   return schema
 }
 
-export default class Model extends Hookable {
+export default class Model extends Hookable<ModelNuxtOaHooks> {
   name: string
   collection: Collection
   encryptedProps: string[]
@@ -38,6 +59,7 @@ export default class Model extends Hookable {
   userstamps: { createdBy?: Boolean, updatedBy?: Boolean, deletedBy?: Boolean }
   schema: Schema
   validator: ValidateFunction
+  getAllCleaner: (el: object) => object
 
   constructor (name: string) {
     super()
@@ -80,6 +102,8 @@ export default class Model extends Hookable {
     cleanSchema(this.schema)
 
     this.validator = ajv.compile(this.schema)
+
+    this.getAllCleaner = (el: object) => this.cleanJSON(el)
   }
 
   /**
@@ -178,9 +202,7 @@ export default class Model extends Hookable {
    */
   async getAll (event?: H3Event) {
     await this.callHook('getAll:before', { event })
-    const hookClean = await this.callHook('getAll') ?? ((el: object) => this.cleanJSON(el))
-    return (await this.collection.find({}).toArray())
-      .map(hookClean)
+    return (await this.collection.find({}).toArray()).map(this.getAllCleaner)
   }
 
   /**
