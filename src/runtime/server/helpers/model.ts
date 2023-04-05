@@ -207,7 +207,7 @@ export default class Model extends Hookable {
     const { insertedId } = await this.collection.insertOne(data)
 
     const json = this.cleanJSON({ _id: insertedId, ...data })
-    await this.callHook('create:done', json, event)
+    await this.callHook('create:done', { data: json, event })
     return json
   }
 
@@ -249,7 +249,7 @@ export default class Model extends Hookable {
     }
 
     const json = this.cleanJSON(value)
-    await this.callHook('update:done', json, event)
+    await this.callHook('update:done', { data: json, event })
     return json
   }
 
@@ -275,7 +275,7 @@ export default class Model extends Hookable {
     }
 
     const json = this.cleanJSON(value)
-    await this.callHook('archive:done', json, event)
+    await this.callHook('archive:done', { data: json, event })
     return json
   }
 
@@ -290,7 +290,7 @@ export default class Model extends Hookable {
 
     const { deletedCount } = await this.collection.deleteOne({ _id })
 
-    await this.callHook('delete:done', { id, deletedCount, event })
+    await this.callHook('delete:done', { data: { id }, deletedCount, event })
     return { deletedCount }
   }
 }
