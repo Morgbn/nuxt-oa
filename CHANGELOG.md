@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/Morgbn/nuxt-oa/compare/v1.3.0...v1.3.1) (2023-04-05)
+
+
+### Bug Fixes
+
+* :ambulance: cyclic dependency ([1eacbf9](https://github.com/Morgbn/nuxt-oa/commit/1eacbf959f1394c32ed9de9c9702c142aa620e3a))
+
 # [1.3.0](https://github.com/Morgbn/nuxt-oa/compare/v1.2.1...v1.3.0) (2023-04-05)
 
 
