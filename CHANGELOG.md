@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/Morgbn/nuxt-oa/compare/v1.2.1...v1.3.0) (2023-04-05)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: uniform hooks args ([2711f57](https://github.com/Morgbn/nuxt-oa/commit/2711f574c9734e1195cfa1cf9be10660817899c6))
+
+
+### Features
+
+* :label: use Hookable<T> in Model ([60fb495](https://github.com/Morgbn/nuxt-oa/commit/60fb495d25f20092fbe07ee4dd8a0ac152c3ff54))
+* :sparkles: pass incoming request to hook ([8afc162](https://github.com/Morgbn/nuxt-oa/commit/8afc162e3f4a42dc7fbf14c9829bee60f28cfb7a))
+
 ## [1.2.1](https://github.com/Morgbn/nuxt-oa/compare/v1.2.0...v1.2.1) (2023-04-05)
 
 
