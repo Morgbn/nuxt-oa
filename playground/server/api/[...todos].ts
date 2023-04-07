@@ -18,6 +18,7 @@ Todo.hook('create:after', ({ data }) => setReadOnlyProp(data))
 
 Todo.hook('update:after', ({ data }) => setReadOnlyProp(data))
 Todo.hook('archive:done', ({ event }) => consola.log(`Todo #${event?.context.params?.id} archived`))
+Todo.hook('update:document', ({ document }) => consola.log(`Todo mongodb document (from findOne) => ${document}`))
 
 const log = oaHandler((ev: H3Event) => {
   consola.log('log::', ev.node.req.method)

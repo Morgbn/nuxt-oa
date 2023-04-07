@@ -2,8 +2,8 @@ import { randomBytes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
-import type { Collection, ObjectId } from 'mongodb'
-import { Hookable } from 'hookable'
+import type { Collection, Document, ObjectId, WithId } from 'mongodb'
+import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
 import type { Schema } from '../../../types'
@@ -21,6 +21,7 @@ const cipherKey = config.cipherKey
 
 type HookResult = Promise<void> | void
 type HookArgData = { data: Schema }
+type HookArgDoc = { document?: WithId<Document>|null }
 type HookArgEv = { event?: H3Event }
 type HookArgIds = { id: string|ObjectId|undefined, _id: ObjectId }
 export interface ModelNuxtOaHooks {
@@ -31,12 +32,15 @@ export interface ModelNuxtOaHooks {
   'create:after': (d: HookArgData & HookArgEv) => HookResult
   'create:done': (d: HookArgData & HookArgEv) => HookResult
   'update:before': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
+  'update:document': (d: HookArgDoc & HookArgEv) => HookResult
   'update:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
   'update:done': (d: HookArgData & HookArgEv) => HookResult
   'archive:before': (d: HookArgEv & HookArgIds) => HookResult
+  'archive:document': (d: HookArgDoc & HookArgEv) => HookResult
   'archive:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
   'archive:done': (d: HookArgData & HookArgEv) => HookResult
   'delete:before': (d: HookArgEv & HookArgIds) => HookResult
+  'delete:document': (d: HookArgDoc & HookArgEv) => HookResult
   'delete:done': (d: HookArgData & HookArgEv & { deletedCount: number }) => HookResult
 }
 
@@ -124,7 +128,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * @param d data
    * @param attr the attribute that triggers the deletion
    */
-  rmPropsWithAttr (d: Schema, attr: string) {
+  private rmPropsWithAttr (d: Schema, attr: string) {
     const stack: { el: Schema, schema: Schema, key?: string|number, parent?: Schema}[] = [{ el: d, schema: this.schema }]
     while (stack.length) {
       const { el, schema, key, parent } = stack.pop() || {}
@@ -154,7 +158,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * Encrypt object props
    * @param d json
    */
-  encrypt (d: Schema) {
+  private encrypt (d: Schema) {
     if (!this.cipherKey) { return }
     let _iv = d._iv
     if (!_iv) {
@@ -206,6 +210,24 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
   }
 
   /**
+   * Retrieve mongodb document if one or more hooks '[action]:document' are set
+   * @param action
+   * @param _id document id
+   * @param event incoming request
+   * @returns document
+   */
+  private async callHookDocument (action: 'update'|'archive'|'delete', _id: ObjectId, event?: H3Event): Promise<WithId<Document>|null> {
+    let document: WithId<Document>|null = null
+    await this.callHookWith(async (hooks: HookCallback[]) => {
+      if (!hooks.length) { return }
+      document = await this.collection.findOne({ _id })
+      const proms = hooks.map(caller => caller({ document, event }))
+      return Promise.all(proms)
+    }, `${action}:document`, {})
+    return document
+  }
+
+  /**
    * Create a new model instance
    * @param d body (data from user)
    * @param userId user id
@@ -245,13 +267,15 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
+    const document = await this.callHookDocument('update', _id, event)
+
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     if (this.timestamps.updatedAt) { data.updatedAt = new Date() }
     if (this.userstamps.updatedBy) { data.updatedBy = userId }
 
     const instance = (this.trackedProps.length || this.cipherKey)
-      ? await this.collection.findOne({ _id }) as Schema
+      ? document ?? await this.collection.findOne({ _id }) as Schema
       : null
     if (this.trackedProps.length && instance) {
       const update = this.trackedProps.reduce((o, key) => ({ ...o, [key]: instance[key] }), {})
@@ -285,6 +309,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
   async archive (id: string|ObjectId|undefined, archive = true, userId?: string|ObjectId, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id, event })
+    await this.callHookDocument('archive', _id, event)
 
     const data: Record<string, any> = { deletedAt: archive ? new Date() : undefined }
     if (this.userstamps.deletedBy) { data.deletedBy = archive ? userId : undefined }
@@ -309,6 +334,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
   async delete (id: string|ObjectId|undefined, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('delete:before', { id, _id, event })
+    await this.callHookDocument('delete', _id, event)
 
     const { deletedCount } = await this.collection.deleteOne({ _id })
 
