@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Morgbn/nuxt-oa/compare/v1.3.1...v1.4.0) (2023-04-07)
+
+
+### Features
+
+* :sparkles: hook to get mongodb document ([0f0f55d](https://github.com/Morgbn/nuxt-oa/commit/0f0f55d03ecda8b2515da277a442d83efc544b5b))
+
 ## [1.3.1](https://github.com/Morgbn/nuxt-oa/compare/v1.3.0...v1.3.1) (2023-04-05)
 
 
