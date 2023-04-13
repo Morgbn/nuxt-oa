@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/Morgbn/nuxt-oa/compare/v1.4.0...v1.4.1) (2023-04-13)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: rm private from encrypt method ([f45cb67](https://github.com/Morgbn/nuxt-oa/commit/f45cb67d2f5be39d093422824bc903b8d1c5c831))
+
 # [1.4.0](https://github.com/Morgbn/nuxt-oa/compare/v1.3.1...v1.4.0) (2023-04-07)
 
 
