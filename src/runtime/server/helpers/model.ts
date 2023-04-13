@@ -158,7 +158,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * Encrypt object props
    * @param d json
    */
-  private encrypt (d: Schema) {
+  encrypt (d: Schema) {
     if (!this.cipherKey) { return }
     let _iv = d._iv
     if (!_iv) {
