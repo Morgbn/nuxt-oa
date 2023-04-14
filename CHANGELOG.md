@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/Morgbn/nuxt-oa/compare/v1.4.1...v1.4.2) (2023-04-14)
+
+
+### Bug Fixes
+
+* :bug: don't encrypt undefined/null ([ae528f8](https://github.com/Morgbn/nuxt-oa/commit/ae528f8e34221bd523fb1f945471a50253313ce0))
+
 ## [1.4.1](https://github.com/Morgbn/nuxt-oa/compare/v1.4.0...v1.4.1) (2023-04-13)
 
 
