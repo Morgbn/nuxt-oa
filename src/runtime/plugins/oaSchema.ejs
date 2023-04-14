@@ -8,9 +8,7 @@ delete schema.timestamps
 delete schema.userstamps
 
 // remove writeOnly props
-if (schema.writeOnly) {
-  schema = {}
-} else {
+if (!schema.writeOnly) {
   const stack = []
   const addToStack = parent => Object.entries(parent).forEach(([key, el]) =>
     typeof el === 'object' ? stack.push({ key, parent, el }) : 0)
@@ -28,7 +26,7 @@ if (schema.writeOnly) {
 export default defineNuxtPlugin((nuxtApp) => {
   return {
     provide: {
-      get<%- options.modelName %>OaSchema: schema
+      get<%- options.modelName %>OaSchema: schema.writeOnly ? {} : schema
     }
   }
 })
