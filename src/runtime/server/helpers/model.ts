@@ -165,7 +165,9 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
       d._iv = _iv = randomBytes(16).toString('base64')
     }
     for (const key of this.encryptedProps) {
-      d[key] = encrypt(d[key], _iv, this.cipherKey, cipherAlgo)
+      if (d[key] !== undefined && d[key] !== null) {
+        d[key] = encrypt(d[key], _iv, this.cipherKey, cipherAlgo)
+      }
     }
   }
 
