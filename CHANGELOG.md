@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/Morgbn/nuxt-oa/compare/v1.4.2...v1.4.3) (2023-04-14)
+
+
+### Bug Fixes
+
+* :bug: illegal reassignment of import "schema" ([f7a349b](https://github.com/Morgbn/nuxt-oa/commit/f7a349b86634205e80c19e7496f7e6baceec60e7))
+
 ## [1.4.2](https://github.com/Morgbn/nuxt-oa/compare/v1.4.1...v1.4.2) (2023-04-14)
 
 
