@@ -1,0 +1,13 @@
+{
+  "$id": "defs",
+  "definitions": {
+    "tag": {
+      "type": "string",
+      "enum": ["low", "moderate", "hight"]
+    },
+    "test": {
+      "type": "string",
+      "description": "Test definitions"
+    }
+  }
+}

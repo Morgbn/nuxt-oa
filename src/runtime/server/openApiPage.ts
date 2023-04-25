@@ -1,12 +1,23 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { Schema } from '../../types'
+import type { Schema, DefsSchema } from '../../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
-import { config, schemasByName } from '#oa'
+import { config, schemasByName, defsSchemas } from '#oa'
 
+const hasMultiDefsId = defsSchemas.length > 1
+const defsComponents = defsSchemas.reduce((o: Record<string, Schema>, schema: DefsSchema) => {
+  for (const key in schema.definitions) {
+    o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key]
+  }
+  return o
+}, {})
+
+const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/gm
+const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/components/schemas/$3"'
 const schemas = Object.entries(schemasByName)
   .reduce((o: Record<string, Schema>, [key, schema]) => {
-    o[key] = cleanSchema({ ...schema as Schema })
+    schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
+    o[key] = cleanSchema(schema as Schema)
     return o
   }, {})
 
@@ -18,7 +29,10 @@ export default defineEventHandler((event) => {
     paths,
     components: {
       ...components,
-      schemas
+      schemas: {
+        ...defsComponents,
+        ...schemas
+      }
     },
     servers: config?.openApiServers
   }

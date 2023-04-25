@@ -11,9 +11,9 @@ import { useCol, useObjectId } from '../composables'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 // @ts-ignore
-import { config, schemasByName } from '#oa'
+import { config, schemasByName, defsSchemas } from '#oa'
 
-const ajv = new Ajv({ removeAdditional: true })
+const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
 
 const cipherAlgo = config.cipherAlgo

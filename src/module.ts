@@ -3,7 +3,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
 import genTypes from './typeGenerator'
-import type { ModuleOptions } from './types'
+import type { ModuleOptions, Schema, DefsSchema } from './types'
 
 const logger = useLogger('nuxt-oa')
 
@@ -21,8 +21,9 @@ export default defineNuxtModule<ModuleOptions>({
   async setup (options, nuxt) {
     options = { ...options, ...nuxt.options.runtimeConfig?.oa as ModuleOptions }
 
-    const schemasByName: Record<string, object> = {}
+    const schemasByName: Record<string, Schema> = {}
     const schemasFolderPathByName: Record<string, string> = {}
+    const defsById: Record<string, DefsSchema> = {}
     for (const layer of nuxt.options._layers) {
       const { oa } = layer.config
       if (oa) {
@@ -38,12 +39,24 @@ export default defineNuxtModule<ModuleOptions>({
       for (const file of readdirSync(schemasFolderPath)) { // Read schemas
         const name = file.split('.').slice(0, -1).join('.')
         const schema = JSON.parse(readFileSync(schemasResolver.resolve(file), 'utf-8'))
-        if (!schemasByName[name]) { // earlier = higher priority
+        if (name === 'defs') { // definitions file
+          const { $id, definitions } = schema as DefsSchema
+          if (defsById[$id]) { // extends definitions
+            for (const key in definitions) {
+              if (!defsById[$id].definitions[key]) { // earlier = higher priority -> don't replace previous def
+                defsById[$id].definitions[key] = definitions[key]
+              }
+            }
+          } else {
+            defsById[$id] = schema
+          }
+        } else if (!schemasByName[name]) { // schema file, earlier = higher priority
           schemasByName[name] = schema
           schemasFolderPathByName[name] = schemasFolderPath
         }
       }
     }
+    const defsSchemas = Object.values(defsById)
 
     if (!options.dbUrl) {
       logger.warn('@nuxtjs/oa dbUrl is required (mongodb connection string)')
@@ -53,7 +66,8 @@ export default defineNuxtModule<ModuleOptions>({
       filename: 'oa.mjs',
       write: true,
       getContents: () => `export const config = ${JSON.stringify(options, null, 2)}\n\n` +
-      `export const schemasByName = ${JSON.stringify(schemasByName, null, 2)}\n`
+      `export const schemasByName = ${JSON.stringify(schemasByName, null, 2)}\n\n` +
+      `export const defsSchemas = ${JSON.stringify(defsSchemas, null, 2)}\n`
     }).dst || '').href
 
     // Transpile runtime
@@ -93,11 +107,16 @@ export default defineNuxtModule<ModuleOptions>({
         options: { schemasFolderPath: schemasFolderPathByName[modelName], modelName }
       })
     }
+    // Provide getOaDefsSchema
+    addPlugin(addTemplate({
+      filename: 'getOaDefsSchema.mjs',
+      getContents: () => `import { defineNuxtPlugin } from '#imports'\nconst byId = ${JSON.stringify(defsById)}\nexport default defineNuxtPlugin(() => ({ provide: { getOaDefsSchema: id => byId[id] } }))`
+    }).dst)
 
     // Add j2u (auto form generator)
     addPlugin(resolve('runtime/plugins/j2u'))
     addImports([
-      'useOaSchema'
+      'useOaSchema', 'useOaDefsSchema'
     ].map(key => ({
       name: key,
       as: key,
@@ -107,7 +126,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Add types
     const typesPath = addTemplate({
       filename: 'types/nuxt-oa.d.ts',
-      getContents: () => genTypes(schemasByName)
+      getContents: () => genTypes(schemasByName, defsSchemas)
     }).dst
     nuxt.hook('prepare:types', (options) => {
       options.references.push({ path: typesPath })
