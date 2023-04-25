@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Morgbn/nuxt-oa/compare/v1.4.3...v1.5.0) (2023-04-25)
+
+
+### Features
+
+* :sparkles: add $ref support ([c5b7246](https://github.com/Morgbn/nuxt-oa/commit/c5b7246c448aa5f83c5e8a291685a065e1164342))
+
 ## [1.4.3](https://github.com/Morgbn/nuxt-oa/compare/v1.4.2...v1.4.3) (2023-04-14)
 
 
