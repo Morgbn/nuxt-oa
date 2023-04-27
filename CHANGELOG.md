@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/Morgbn/nuxt-oa/compare/v1.6.0...v1.6.1) (2023-04-27)
+
+
+### Bug Fixes
+
+* :art: better nullable support ([eab78a1](https://github.com/Morgbn/nuxt-oa/commit/eab78a172524ae2b1bb555fff6057a2225ccbd08))
+
 # [1.6.0](https://github.com/Morgbn/nuxt-oa/compare/v1.5.0...v1.6.0) (2023-04-27)
 
 
