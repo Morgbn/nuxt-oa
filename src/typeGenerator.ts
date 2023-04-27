@@ -6,7 +6,7 @@ const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
 
 const refRe = /(\w+)(?:\.\w+)?#(?:\/(\w+))+/
 function simplestType (schema: Schema, interfaceName: string, stack: Stack): string {
-  const suffix = schema.nullable ? '|null' : ''
+  const suffix = (schema.nullable && !schema.enum) ? '|null' : '' // null must be explicitly included in the list of enum values, see: https://github.com/OAI/OpenAPI-Specification/blob/main/proposals/2019-10-31-Clarify-Nullable.md#if-a-schema-specifies-nullable-true-and-enum-1-2-3-does-that-schema-allow-null-values-see-1900
   if (schema.$ref) {
     const [, defName, keyName] = schema.$ref.match(refRe)
     return `Oa${capFirst(defName)}${capFirst(keyName)}${suffix}`
@@ -42,6 +42,9 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
         const t = simplestType(propSchema.items, itemInterfaceName, stack)
         str += `${t.includes('|') ? `(${t})` : t}[]`
       }
+      if (propSchema.nullable) {
+        str += '|null'
+      }
     } else {
       str += simplestType(propSchema, propInterfaceName, stack)
     }
@@ -53,7 +56,9 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
 function genType (schema: Schema, interfaceName: string, stack: Stack) {
   let str = `type ${interfaceName} = `
   if (schema.enum) {
-    str += schema.enum.map((v: any) => `'${v}'`).join(' | ')
+    str += schema.enum
+      .map((v: any) => v === null ? `${v}` : `'${v}'`)
+      .join(' | ')
   } else {
     str += schema.type ?? 'any'
   }
