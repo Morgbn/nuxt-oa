@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/Morgbn/nuxt-oa/compare/v1.5.0...v1.6.0) (2023-04-27)
+
+
+### Features
+
+* :sparkles: nullable support ([0d16190](https://github.com/Morgbn/nuxt-oa/commit/0d1619030544a20474a2f9bc6aa7a7da1ac60ab3))
+
 # [1.5.0](https://github.com/Morgbn/nuxt-oa/compare/v1.4.3...v1.5.0) (2023-04-25)
 
 
