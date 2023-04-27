@@ -13,7 +13,8 @@
     },
     "done": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "nullable": true
     },
     "readOnlyProp": {
       "type": "string",

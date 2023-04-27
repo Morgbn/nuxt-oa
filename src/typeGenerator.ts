@@ -5,19 +5,20 @@ type Stack = [Schema, string][]
 const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
 
 const refRe = /(\w+)(?:\.\w+)?#(?:\/(\w+))+/
-function simpliestType (schema: Schema, interfaceName: string, stack: Stack): string {
+function simplestType (schema: Schema, interfaceName: string, stack: Stack): string {
+  const suffix = schema.nullable ? '|null' : ''
   if (schema.$ref) {
     const [, defName, keyName] = schema.$ref.match(refRe)
-    return `Oa${capFirst(defName)}${capFirst(keyName)}`
+    return `Oa${capFirst(defName)}${capFirst(keyName)}${suffix}`
   }
   if (schema.properties || schema.enum || schema.anyOf || schema.oneOf || schema.not) {
     stack.push([schema, interfaceName])
-    return interfaceName
+    return `${interfaceName}${suffix}`
   }
   if (schema.format === 'date' || schema.format === 'date-time') {
-    return `${schema.type ?? 'string'}|Date`
+    return `${schema.type ?? 'string'}|Date${suffix}`
   }
-  return schema.type ?? 'any'
+  return `${schema.type ?? 'any'}${suffix}`
 }
 
 function genInterface (schema: Schema, interfaceName: string, stack: Stack): string {
@@ -35,13 +36,14 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
       const itemInterfaceName = `${propInterfaceName}Item`
       if (Array.isArray(propSchema.items)) {
         const items = propSchema.items
-          .map((item: Schema, i: number) => simpliestType(item, itemInterfaceName + i, stack))
+          .map((item: Schema, i: number) => simplestType(item, itemInterfaceName + i, stack))
         str += `[${items.join(', ')}]`
       } else if (typeof propSchema.items === 'object') {
-        str += `${simpliestType(propSchema.items, itemInterfaceName, stack)}[]`
+        const t = simplestType(propSchema.items, itemInterfaceName, stack)
+        str += `${t.includes('|') ? `(${t})` : t}[]`
       }
     } else {
-      str += simpliestType(propSchema, propInterfaceName, stack)
+      str += simplestType(propSchema, propInterfaceName, stack)
     }
     str += '\n'
   }
