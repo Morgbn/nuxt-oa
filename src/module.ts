@@ -1,4 +1,3 @@
-import { pathToFileURL } from 'url'
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
@@ -19,8 +18,7 @@ export default defineNuxtModule<ModuleOptions>({
     swaggerPath: '/api-doc'
   },
   async setup (options, nuxt) {
-    options = { ...options, ...nuxt.options.runtimeConfig?.oa as ModuleOptions }
-
+    // Get schemas & defs
     const schemasByName: Record<string, Schema> = {}
     const schemasFolderPathByName: Record<string, string> = {}
     const defsById: Record<string, DefsSchema> = {}
@@ -62,13 +60,10 @@ export default defineNuxtModule<ModuleOptions>({
       logger.warn('@nuxtjs/oa dbUrl is required (mongodb connection string)')
     }
 
-    nuxt.options.alias['#oa'] = pathToFileURL(addTemplate({
-      filename: 'oa.mjs',
-      write: true,
-      getContents: () => `export const config = ${JSON.stringify(options, null, 2)}\n\n` +
-      `export const schemasByName = ${JSON.stringify(schemasByName, null, 2)}\n\n` +
-      `export const defsSchemas = ${JSON.stringify(defsSchemas, null, 2)}\n`
-    }).dst || '').href
+    // Set up runtime configuration
+    nuxt.options.runtimeConfig = nuxt.options.runtimeConfig || { public: {} }
+    // @ts-ignore
+    nuxt.options.runtimeConfig.oa = { config: options, schemasByName, defsSchemas }
 
     // Transpile runtime
     const { resolve } = createResolver(import.meta.url)

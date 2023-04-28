@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import type { CipherGCMTypes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
@@ -6,17 +7,19 @@ import type { Collection, Document, ObjectId, WithId } from 'mongodb'
 import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
-import type { Schema } from '../../../types'
+import type { OaConfig, Schema } from '../../../types'
 import { useCol, useObjectId } from '../composables'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
-// @ts-ignore
-import { config, schemasByName, defsSchemas } from '#oa'
+
+import { useRuntimeConfig } from '#imports'
+
+const { config, schemasByName, defsSchemas } = useRuntimeConfig().oa as OaConfig
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
 
-const cipherAlgo = config.cipherAlgo
+const cipherAlgo = config.cipherAlgo as CipherGCMTypes
 const cipherKey = config.cipherKey
 
 type HookResult = Promise<void> | void
@@ -65,7 +68,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
   validator: ValidateFunction
   getAllCleaner: (el: object) => object
 
-  constructor (name: string) {
+  constructor (name: keyof typeof schemasByName) {
     super()
     if (!schemasByName[name]) {
       throw new Error(`Can not found schema "${name}"`)

@@ -1,11 +1,14 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { Schema, DefsSchema } from '../../types'
+import type { Schema, DefsSchema, OaConfig } from '../../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
-import { config, schemasByName, defsSchemas } from '#oa'
+
+import { useRuntimeConfig } from '#imports'
+
+const { config, schemasByName, defsSchemas } = useRuntimeConfig().oa as OaConfig
 
 const hasMultiDefsId = defsSchemas.length > 1
-const defsComponents = defsSchemas.reduce((o: Record<string, Schema>, schema: DefsSchema) => {
+const defsComponents = (defsSchemas as DefsSchema[]).reduce<Record<string, Schema>>((o, schema) => {
   for (const key in schema.definitions) {
     o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key]
   }

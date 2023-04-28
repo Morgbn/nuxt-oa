@@ -46,3 +46,5 @@ export interface ModuleOptions {
 export type Schema = { [key: string]: any }
 
 export type DefsSchema = { $id: string, definitions: Record<string, Schema> }
+
+export type OaConfig = { config: ModuleOptions, schemasByName: Record<string, Schema>, defsSchemas: DefsSchema[]|Object[] }

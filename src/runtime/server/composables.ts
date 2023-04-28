@@ -5,7 +5,10 @@ import type { Db, Collection } from 'mongodb'
 import type { H3Event } from 'h3'
 
 import Model from './helpers/model'
-import { config } from '#oa'
+
+import { useRuntimeConfig } from '#imports'
+
+const { config } = useRuntimeConfig().oa
 
 export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
 export { useGetAll, useCreate, useUpdate, useArchive, useDelete } from './helpers/controllers'
