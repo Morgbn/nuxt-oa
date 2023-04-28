@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/Morgbn/nuxt-oa/compare/v1.6.1...v1.6.2) (2023-04-28)
+
+
+### Bug Fixes
+
+* :recycle: replace alias #oa  with runtimeConfig.oa ([cb4a99b](https://github.com/Morgbn/nuxt-oa/commit/cb4a99b1ff4dfcb9035cab4feb33d7804e5b06c3))
+
 ## [1.6.1](https://github.com/Morgbn/nuxt-oa/compare/v1.6.0...v1.6.1) (2023-04-27)
 
 
