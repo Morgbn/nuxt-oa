@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
+import { defu } from 'defu'
 import genTypes from './typeGenerator'
 import type { ModuleOptions, Schema, DefsSchema } from './types'
 
@@ -61,9 +62,11 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     // Set up runtime configuration
-    nuxt.options.runtimeConfig = nuxt.options.runtimeConfig || { public: {} }
-    // @ts-ignore
-    nuxt.options.runtimeConfig.oa = { config: options, schemasByName, defsSchemas }
+    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
+      config: options,
+      schemasByName,
+      defsSchemas
+    })
 
     // Transpile runtime
     const { resolve } = createResolver(import.meta.url)
