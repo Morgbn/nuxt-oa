@@ -5,6 +5,8 @@ import { defu } from 'defu'
 import genTypes from './typeGenerator'
 import type { ModuleOptions, Schema, DefsSchema } from './types'
 
+export type { ModuleOptions } from './types'
+
 const logger = useLogger('nuxt-oa')
 
 export default defineNuxtModule<ModuleOptions>({
