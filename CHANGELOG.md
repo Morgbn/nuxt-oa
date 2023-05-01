@@ -1,3 +1,11 @@
+## [1.6.3](https://github.com/Morgbn/nuxt-oa/compare/v1.6.2...v1.6.3) (2023-05-01)
+
+
+### Bug Fixes
+
+* :art: use defu for runtimeConfig ([47e23ea](https://github.com/Morgbn/nuxt-oa/commit/47e23ea0ccd2a8d1df3929c02c818cff8f3cc479))
+* :label: export type ModuleOptions ([20f4c45](https://github.com/Morgbn/nuxt-oa/commit/20f4c45d51b9725e60e504a80e869aa39b7b6d28))
+
 ## [1.6.2](https://github.com/Morgbn/nuxt-oa/compare/v1.6.1...v1.6.2) (2023-04-28)
 
 
