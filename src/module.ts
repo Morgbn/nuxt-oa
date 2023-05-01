@@ -69,10 +69,25 @@ export default defineNuxtModule<ModuleOptions>({
     const { resolve } = createResolver(import.meta.url)
     nuxt.options.build.transpile.push(resolve('runtime'))
 
-    // Add server composables like useModel
+    // Auto import server helpers like useModel
     nuxt.options.nitro.imports = nuxt.options.nitro.imports || {}
     nuxt.options.nitro.imports.presets = nuxt.options.nitro.imports.presets || []
-    nuxt.options.nitro.imports.presets.push({ from: resolve('runtime/server/composables'), imports: ['useDb', 'useCol', 'useObjectId', 'useModel', 'createOaRouter', 'oaHandler', 'oaComponent', 'useGetAll', 'useCreate', 'useUpdate', 'useArchive', 'useDelete', 'useUserId'] })
+    nuxt.options.nitro.imports.presets.push({
+      from: resolve('runtime/server/helpers/model'),
+      imports: ['useModel']
+    })
+    nuxt.options.nitro.imports.presets.push({
+      from: resolve('runtime/server/helpers/controllers'),
+      imports: ['useUserId', 'useGetAll', 'useCreate', 'useUpdate', 'useArchive', 'useDelete']
+    })
+    nuxt.options.nitro.imports.presets.push({
+      from: resolve('runtime/server/helpers/router'),
+      imports: ['createOaRouter', 'oaHandler', 'oaComponent']
+    })
+    nuxt.options.nitro.imports.presets.push({
+      from: resolve('runtime/server/helpers/db'),
+      imports: ['useDb', 'useCol', 'useObjectId']
+    })
 
     // Add doc routes
     if (options.openApiPath) {

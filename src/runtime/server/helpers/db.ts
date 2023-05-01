@@ -1,17 +1,11 @@
-import { createError } from 'h3'
 import { MongoClient, ObjectId } from 'mongodb'
+import { createError } from 'h3'
 import consola from 'consola'
 import type { Db, Collection } from 'mongodb'
-import type { H3Event } from 'h3'
-
-import Model from './helpers/model'
 
 import { useRuntimeConfig } from '#imports'
 
 const { config } = useRuntimeConfig().oa
-
-export { createOaRouter, oaHandler, oaComponent } from './helpers/router'
-export { useGetAll, useCreate, useUpdate, useArchive, useDelete } from './helpers/controllers'
 
 const client = new MongoClient(config.dbUrl)
 client.connect()
@@ -38,19 +32,4 @@ export function useObjectId (id: number | string | ObjectId | Buffer | undefined
     throw createError({ statusCode: 400, statusMessage: 'Bad id' })
   }
   return new ObjectId(id)
-}
-
-const modelsCache: Record<string, Model> = {}
-export function useModel (name: string): Model {
-  if (!modelsCache[name]) {
-    modelsCache[name] = new Model(name)
-  }
-  return modelsCache[name]
-}
-
-export function useUserId (event: H3Event): string|ObjectId {
-  if (!event.context.user?.id) {
-    throw createError({ statusCode: 400, statusMessage: 'No user.id in event.context' })
-  }
-  return event.context.user.id
 }

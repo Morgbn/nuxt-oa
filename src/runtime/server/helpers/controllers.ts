@@ -1,7 +1,7 @@
-import { readBody } from 'h3'
+import { createError, readBody } from 'h3'
 import type { H3Event } from 'h3'
+import type { ObjectId } from 'mongodb'
 
-import { useUserId } from '../composables'
 import Model from './model'
 import { oaHandler } from './router'
 
@@ -23,6 +23,13 @@ const modelIdInPath = (name: string) => ({
   required: true,
   description: `Object Id of the ${name.toLowerCase()}`
 })
+
+export function useUserId (event: H3Event): string|ObjectId {
+  if (!event.context.user?.id) {
+    throw createError({ statusCode: 400, statusMessage: 'No user.id in event.context' })
+  }
+  return event.context.user.id
+}
 
 export const useGetAll = (model: Model, apiDoc = {}) => {
   const { name } = model

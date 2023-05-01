@@ -8,7 +8,7 @@ import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
 import type { OaConfig, Schema } from '../../../types'
-import { useCol, useObjectId } from '../composables'
+import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 
@@ -346,4 +346,12 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     await this.callHook('delete:done', { data: { id }, deletedCount, event })
     return { deletedCount }
   }
+}
+
+const modelsCache: Record<string, Model> = {}
+export function useModel (name: string): Model {
+  if (!modelsCache[name]) {
+    modelsCache[name] = new Model(name)
+  }
+  return modelsCache[name]
 }
