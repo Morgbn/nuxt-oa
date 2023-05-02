@@ -1,3 +1,11 @@
+## [1.6.4](https://github.com/Morgbn/nuxt-oa/compare/v1.6.3...v1.6.4) (2023-05-02)
+
+
+### Bug Fixes
+
+* :art: add missing mongo client options ([ac58077](https://github.com/Morgbn/nuxt-oa/commit/ac58077ad7862348e7f1997391792357793e85ac))
+* :art: better runtimeConfig ([a5fdde2](https://github.com/Morgbn/nuxt-oa/commit/a5fdde2acd33cf530958585ed7d40082cfa4c166))
+
 ## [1.6.3](https://github.com/Morgbn/nuxt-oa/compare/v1.6.2...v1.6.3) (2023-05-01)
 
 
