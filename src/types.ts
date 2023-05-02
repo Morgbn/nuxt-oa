@@ -1,4 +1,5 @@
 import type { CipherGCMTypes } from 'node:crypto'
+import type { MongoClientOptions } from 'mongodb'
 
 // API General Info: https://swagger.io/docs/specification/api-general-info/
 export interface OpenApiGeneralInfo {
@@ -34,13 +35,14 @@ export interface OpenApiServer {
 
 export interface ModuleOptions {
   schemasFolder: string,
-  dbUrl?: string,
-  cipherAlgo: CipherGCMTypes,
-  cipherKey?: string,
-  openApiPath?: string,
-  openApiGeneralInfo?: OpenApiGeneralInfo,
+  dbUrl?: string
+  dbOptions?: MongoClientOptions
+  cipherAlgo: CipherGCMTypes
+  cipherKey?: string
+  openApiPath?: string
+  openApiGeneralInfo?: OpenApiGeneralInfo
   openApiServers?: OpenApiServer[]
-  swaggerPath?: string,
+  swaggerPath?: string
 }
 
 export type Schema = { [key: string]: any }

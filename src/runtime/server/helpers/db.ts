@@ -7,7 +7,7 @@ import { useRuntimeConfig } from '#imports'
 
 const { config } = useRuntimeConfig().oa
 
-const client = new MongoClient(config.dbUrl)
+const client = new MongoClient(config.dbUrl, config.dbOptions)
 client.connect()
   .then(() => {
     consola.success('Connected Successfully to MongoDB')

@@ -15,6 +15,7 @@ export default defineNuxtModule<ModuleOptions>({
     configKey: 'oa'
   },
   defaults: {
+    dbOptions: {},
     schemasFolder: 'schemas',
     cipherAlgo: 'aes-256-gcm',
     openApiPath: '/api-doc/openapi.json',
