@@ -1,14 +1,14 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { Schema, DefsSchema, OaConfig } from '../../types'
+import type { Schema } from '../../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
 
 import { useRuntimeConfig } from '#imports'
 
-const { config, schemasByName, defsSchemas } = useRuntimeConfig().oa as OaConfig
+const { openApiGeneralInfo, openApiServers, schemasByName, defsSchemas } = useRuntimeConfig().oa
 
 const hasMultiDefsId = defsSchemas.length > 1
-const defsComponents = (defsSchemas as DefsSchema[]).reduce<Record<string, Schema>>((o, schema) => {
+const defsComponents = defsSchemas.reduce<Record<string, Schema>>((o, schema) => {
   for (const key in schema.definitions) {
     o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key]
   }
@@ -28,7 +28,7 @@ export default defineEventHandler((event) => {
   setHeader(event, 'Content-Type', 'application/json')
   return {
     openapi: '3.0.0',
-    info: config?.openApiGeneralInfo,
+    info: openApiGeneralInfo,
     paths,
     components: {
       ...components,
@@ -37,6 +37,6 @@ export default defineEventHandler((event) => {
         ...schemas
       }
     },
-    servers: config?.openApiServers
+    servers: openApiServers
   }
 })

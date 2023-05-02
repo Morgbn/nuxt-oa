@@ -7,20 +7,17 @@ import type { Collection, Document, ObjectId, WithId } from 'mongodb'
 import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
-import type { OaConfig, Schema } from '../../../types'
+import type { Schema } from '../../../types'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 
 import { useRuntimeConfig } from '#imports'
 
-const { config, schemasByName, defsSchemas } = useRuntimeConfig().oa as OaConfig
+const { cipherAlgo, cipherKey, schemasByName, defsSchemas } = useRuntimeConfig().oa
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
-
-const cipherAlgo = config.cipherAlgo as CipherGCMTypes
-const cipherKey = config.cipherKey
 
 type HookResult = Promise<void> | void
 type HookArgData = { data: Schema }

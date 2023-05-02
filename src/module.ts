@@ -60,13 +60,9 @@ export default defineNuxtModule<ModuleOptions>({
     }
     const defsSchemas = Object.values(defsById)
 
-    if (!options.dbUrl) {
-      logger.warn('@nuxtjs/oa dbUrl is required (mongodb connection string)')
-    }
-
     // Set up runtime configuration
     nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
-      config: options,
+      ...options,
       schemasByName,
       defsSchemas
     })
@@ -149,3 +145,12 @@ export default defineNuxtModule<ModuleOptions>({
     })
   }
 })
+
+declare module 'nuxt/schema' {
+  interface RuntimeConfig {
+    oa: ModuleOptions & {
+      readonly schemasByName: Record<string, Schema>,
+      readonly defsSchemas: DefsSchema[]
+    }
+  }
+}

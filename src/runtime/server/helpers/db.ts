@@ -5,9 +5,9 @@ import type { Db, Collection } from 'mongodb'
 
 import { useRuntimeConfig } from '#imports'
 
-const { config } = useRuntimeConfig().oa
+const { dbUrl, dbOptions } = useRuntimeConfig().oa
 
-const client = new MongoClient(config.dbUrl, config.dbOptions)
+const client = new MongoClient(dbUrl ?? '', dbOptions)
 client.connect()
   .then(() => {
     consola.success('Connected Successfully to MongoDB')
@@ -16,7 +16,7 @@ client.connect()
     consola.error(`DB Connection Error: ${err.message}`)
     process.exit(1)
   })
-const dbName = new URL(config.dbUrl).pathname.split('/').pop() ?? 'test'
+const dbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
 const db = client.db(dbName)
 
 export function useDb (name?: string): Db {

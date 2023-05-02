@@ -1,7 +1,7 @@
 import { defineEventHandler } from 'h3'
 import { useRuntimeConfig } from '#imports'
 
-const { config } = useRuntimeConfig().oa
+const { openApiPath } = useRuntimeConfig().oa
 
 export default defineEventHandler(event => `<html>
   <head>
@@ -22,10 +22,10 @@ export default defineEventHandler(event => `<html>
     <script>
       window.onload = function () {
         window.ui = SwaggerUIBundle({
-          url: "${config.openApiPath}",
+          url: "${openApiPath}",
           dom_id: '#swagger-ui',
           requestInterceptor (req) {
-            if (req.url === '${config.openApiPath}') {
+            if (req.url === '${openApiPath}') {
               req.headers['Content-Type'] = 'application/json'
             }
             return req
