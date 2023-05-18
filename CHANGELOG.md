@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/Morgbn/nuxt-oa/compare/v1.6.4...v1.6.5) (2023-05-18)
+
+
+### Bug Fixes
+
+* :fire: rm process.env from runtimeConfig ([a1fd30b](https://github.com/Morgbn/nuxt-oa/commit/a1fd30ba05ec534818aab100ff455412cbdcf183))
+
 ## [1.6.4](https://github.com/Morgbn/nuxt-oa/compare/v1.6.3...v1.6.4) (2023-05-02)
 
 
