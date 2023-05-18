@@ -14,8 +14,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     oa: {
-      dbUrl: process.env.DB_URL,
-      cipherKey: process.env.PII_ENCRYPT_KEY
+      dbUrl: '',
+      cipherKey: ''
     }
   }
 })
