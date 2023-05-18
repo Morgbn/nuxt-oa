@@ -23,7 +23,7 @@
     "dev:prepare": "nuxt-module-build --stub && nuxi prepare playground"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.3.2",
+    "@nuxt/kit": "^3.5.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.0-rc.0",
     "chalk": "^5.2.0",
@@ -35,11 +35,11 @@
     "ufo": "^1.0.1"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^0.2.1",
-    "@nuxt/schema": "^3.3.2",
+    "@nuxt/module-builder": "^0.3.1",
+    "@nuxt/schema": "^3.5.0",
     "@nuxtjs/eslint-config-typescript": "^12.0.0",
     "eslint": "^8.32.0",
-    "nuxt": "^3.3.2"
+    "nuxt": "^3.5.0"
   },
   "repository": {
     "type": "git",
