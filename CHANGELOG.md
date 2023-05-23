@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/Morgbn/nuxt-oa/compare/v1.6.5...v1.6.6) (2023-05-23)
+
+
+### Bug Fixes
+
+* :art: prevent conflicts with useModel from vue 3.3 ([b02be9c](https://github.com/Morgbn/nuxt-oa/commit/b02be9c4359b5e37e460b0d94435798c7dc37bfa))
+
 ## [1.6.5](https://github.com/Morgbn/nuxt-oa/compare/v1.6.4...v1.6.5) (2023-05-18)
 
 
