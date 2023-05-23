@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import type { CipherGCMTypes } from 'node:crypto'
+import { useLogger } from '@nuxt/kit'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
@@ -14,6 +14,7 @@ import { decrypt, encrypt } from './cipher'
 
 import { useRuntimeConfig } from '#imports'
 
+const logger = useLogger('nuxt-oa')
 const { cipherAlgo, cipherKey, schemasByName, defsSchemas } = useRuntimeConfig().oa
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
@@ -353,6 +354,10 @@ export function useOaModel (name: string): Model {
   return modelsCache[name]
 }
 
+/**
+ * @deprecated use 'useOaModel' instead
+ */
 export function useModel (name: string): Model {
+  logger.warn('"useModel" is deprecated. Use "useOaModel" instead.')
   return useOaModel(name)
 }
