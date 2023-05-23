@@ -71,12 +71,12 @@ export default defineNuxtModule<ModuleOptions>({
     const { resolve } = createResolver(import.meta.url)
     nuxt.options.build.transpile.push(resolve('runtime'))
 
-    // Auto import server helpers like useModel
+    // Auto import server helpers like useOaModel
     nuxt.options.nitro.imports = nuxt.options.nitro.imports || {}
     nuxt.options.nitro.imports.presets = nuxt.options.nitro.imports.presets || []
     nuxt.options.nitro.imports.presets.push({
       from: resolve('runtime/server/helpers/model'),
-      imports: ['useModel']
+      imports: ['useOaModel', 'useModel']
     })
     nuxt.options.nitro.imports.presets.push({
       from: resolve('runtime/server/helpers/controllers'),

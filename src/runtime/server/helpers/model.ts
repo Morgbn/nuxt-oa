@@ -346,9 +346,13 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
 }
 
 const modelsCache: Record<string, Model> = {}
-export function useModel (name: string): Model {
+export function useOaModel (name: string): Model {
   if (!modelsCache[name]) {
     modelsCache[name] = new Model(name)
   }
   return modelsCache[name]
+}
+
+export function useModel (name: string): Model {
+  return useOaModel(name)
 }
