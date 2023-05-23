@@ -1,6 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb'
 import { createError } from 'h3'
-import consola from 'consola'
+import { consola } from 'consola'
 import type { Db, Collection } from 'mongodb'
 
 import { useRuntimeConfig } from '#imports'

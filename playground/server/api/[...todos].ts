@@ -1,4 +1,4 @@
-import consola from 'consola'
+import { consola } from 'consola'
 import { H3Event } from 'h3'
 
 const Layer = useOaModel('Layer')

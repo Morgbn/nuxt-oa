@@ -27,12 +27,12 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.0-rc.0",
     "chalk": "^5.2.0",
-    "consola": "^2.15.3",
+    "consola": "^3.1.0",
     "defu": "^6.1.2",
-    "hookable": "^5.4.2",
+    "hookable": "^5.5.3",
     "j2u": "1.x",
     "mongodb": "^4.13.0",
-    "ufo": "^1.0.1"
+    "ufo": "^1.1.2"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.3.1",
