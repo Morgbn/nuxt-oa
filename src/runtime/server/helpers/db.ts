@@ -19,6 +19,8 @@ client.connect()
 const dbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
 const db = client.db(dbName)
 
+export function useMongoClient () { return client }
+
 export function useDb (name?: string): Db {
   return client.db(name ?? dbName)
 }

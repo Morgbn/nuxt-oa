@@ -88,7 +88,7 @@ export default defineNuxtModule<ModuleOptions>({
     })
     nuxt.options.nitro.imports.presets.push({
       from: resolve('runtime/server/helpers/db'),
-      imports: ['useDb', 'useCol', 'useObjectId']
+      imports: ['useMongoClient', 'useDb', 'useCol', 'useObjectId']
     })
 
     // Add doc routes
