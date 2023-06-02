@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/Morgbn/nuxt-oa/compare/v1.6.6...v1.7.0) (2023-06-02)
+
+
+### Bug Fixes
+
+* :bug: type for anyOf, oneOf, allOf, not ([d627e6a](https://github.com/Morgbn/nuxt-oa/commit/d627e6ab9be746944f159e95542b065fb245d0f2))
+
+
+### Features
+
+* :art: provide useMongoClient ([f0aa080](https://github.com/Morgbn/nuxt-oa/commit/f0aa080d86218b77cd2dbab20835cda956e42be6))
+
 ## [1.6.6](https://github.com/Morgbn/nuxt-oa/compare/v1.6.5...v1.6.6) (2023-05-23)
 
 
