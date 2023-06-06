@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/Morgbn/nuxt-oa/compare/v1.7.0...v1.7.1) (2023-06-06)
+
+
+### Bug Fixes
+
+* :package: update mongodb ([b0f8dfd](https://github.com/Morgbn/nuxt-oa/commit/b0f8dfd9bf966e4ff30d9a4f461184d505a6d5ae))
+
 # [1.7.0](https://github.com/Morgbn/nuxt-oa/compare/v1.6.6...v1.7.0) (2023-06-02)
 
 
