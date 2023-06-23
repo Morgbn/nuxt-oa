@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/Morgbn/nuxt-oa/compare/v1.7.1...v1.7.2) (2023-06-23)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: support number in enum ([0211b58](https://github.com/Morgbn/nuxt-oa/commit/0211b582efd7c3c0441be41dbbc89a20cde791d3))
+
 ## [1.7.1](https://github.com/Morgbn/nuxt-oa/compare/v1.7.0...v1.7.1) (2023-06-06)
 
 
