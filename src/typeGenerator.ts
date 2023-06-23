@@ -64,7 +64,7 @@ function genType (schema: Schema, interfaceName: string, stack: Stack) {
   let str = `type ${interfaceName} = `
   if (schema.enum) {
     str += schema.enum
-      .map((v: any) => v === null ? `${v}` : `'${v}'`)
+      .map((v: any) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
       .join(' | ')
   } else {
     str += schema.type ?? 'any'
