@@ -1,3 +1,11 @@
+## [1.7.3](https://github.com/Morgbn/nuxt-oa/compare/v1.7.2...v1.7.3) (2023-07-07)
+
+
+### Bug Fixes
+
+* :art: rm readOnly props before validate ([b5a5287](https://github.com/Morgbn/nuxt-oa/commit/b5a5287cf77aa51a351246e3a82eae95af55e87a))
+* :label: better mongo collection type ([da5ec1c](https://github.com/Morgbn/nuxt-oa/commit/da5ec1c575a46debbf1ee7c88a9af2a5c88155d3))
+
 ## [1.7.2](https://github.com/Morgbn/nuxt-oa/compare/v1.7.1...v1.7.2) (2023-06-23)
 
 
