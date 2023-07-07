@@ -2,6 +2,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
 import { defu } from 'defu'
+import type { ObjectId } from 'mongodb'
 import genTypes from './typeGenerator'
 import type { ModuleOptions, Schema, DefsSchema } from './types'
 
@@ -146,10 +147,14 @@ export default defineNuxtModule<ModuleOptions>({
   }
 })
 
+export interface OaModels {
+  [key: string]: Schema & { _id?: ObjectId, createdAt?: Date, updatedAt?: Date, createdBy?: string, updatedBy?: string, updates: any[] }
+}
+
 declare module 'nuxt/schema' {
   interface RuntimeConfig {
     oa: ModuleOptions & {
-      readonly schemasByName: Record<string, Schema>,
+      readonly schemasByName: Record<keyof OaModels, Schema>,
       readonly defsSchemas: DefsSchema[]
     }
   }

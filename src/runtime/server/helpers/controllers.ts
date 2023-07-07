@@ -1,7 +1,7 @@
 import { createError, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
-
+import type { OaModels } from '../../../module'
 import Model from './model'
 import { oaHandler } from './router'
 
@@ -31,7 +31,7 @@ export function useUserId (event: H3Event): string|ObjectId {
   return event.context.user.id
 }
 
-export const useGetAll = (model: Model, apiDoc = {}) => {
+export const useGetAll = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -60,7 +60,7 @@ export const useGetAll = (model: Model, apiDoc = {}) => {
   })
 }
 
-export const useCreate = (model: Model, apiDoc = {}) => {
+export const useCreate = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -87,7 +87,7 @@ export const useCreate = (model: Model, apiDoc = {}) => {
   })
 }
 
-export const useUpdate = (model: Model, apiDoc = {}) => {
+export const useUpdate = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -115,7 +115,7 @@ export const useUpdate = (model: Model, apiDoc = {}) => {
   })
 }
 
-export const useArchive = (model: Model, apiDoc = {}) => {
+export const useArchive = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -146,7 +146,7 @@ export const useArchive = (model: Model, apiDoc = {}) => {
   })
 }
 
-export const useDelete = (model: Model, apiDoc = {}) => {
+export const useDelete = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 

@@ -3,11 +3,12 @@ import { useLogger } from '@nuxt/kit'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
-import type { Collection, Document, ObjectId, WithId } from 'mongodb'
+import type { Collection, Document, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
 import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
 import type { Schema } from '../../../types'
+import type { OaModels } from '../../../module'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
@@ -25,8 +26,8 @@ type HookArgData = { data: Schema }
 type HookArgDoc = { document?: WithId<Document>|null }
 type HookArgEv = { event?: H3Event }
 type HookArgIds = { id: string|ObjectId|undefined, _id: ObjectId }
-export interface ModelNuxtOaHooks {
-  'collection:ready': ({ collection }: { collection: Collection }) => HookResult
+export interface ModelNuxtOaHooks<T extends keyof OaModels> {
+  'collection:ready': ({ collection }: { collection: Collection<OaModels[T]> }) => HookResult
   'model:cleanJSON': (d: HookArgData) => HookResult
   'getAll:before': (d: HookArgEv) => HookResult
   'create:before': (d: HookArgData & HookArgEv) => HookResult
@@ -54,25 +55,25 @@ export function cleanSchema (schema: Schema): Schema {
   return schema
 }
 
-export default class Model extends Hookable<ModelNuxtOaHooks> {
-  name: string
-  collection: Collection
+export default class Model<T extends keyof OaModels & string> extends Hookable<ModelNuxtOaHooks<T>> {
+  name: T
+  collection: Collection<OaModels[T]>
   encryptedProps: string[]
   cipherKey: Buffer|undefined
-  trackedProps: string[]
+  trackedProps: (keyof OaModels[T])[]
   timestamps: { createdAt?: Boolean, updatedAt?: Boolean }
   userstamps: { createdBy?: Boolean, updatedBy?: Boolean, deletedBy?: Boolean }
   schema: Schema
   validator: ValidateFunction
-  getAllCleaner: (el: object) => object
+  getAllCleaner: (el: Partial<OaModels[T]>) => Partial<OaModels[T]>
 
-  constructor (name: keyof typeof schemasByName) {
+  constructor (name: T) {
     super()
     if (!schemasByName[name]) {
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
-    this.collection = useCol(pluralize(name))
+    this.collection = useCol<OaModels[T]>(pluralize(name))
     this.callHook('collection:ready', { collection: this.collection })
 
     const schema: Schema = schemasByName[name]
@@ -219,11 +220,11 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * @param event incoming request
    * @returns document
    */
-  private async callHookDocument (action: 'update'|'archive'|'delete', _id: ObjectId, event?: H3Event): Promise<WithId<Document>|null> {
-    let document: WithId<Document>|null = null
+  private async callHookDocument (action: 'update'|'archive'|'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaModels[T]>|null> {
+    let document: WithId<OaModels[T]>|null = null
     await this.callHookWith(async (hooks: HookCallback[]) => {
       if (!hooks.length) { return }
-      document = await this.collection.findOne({ _id })
+      document = await this.collection.findOne({ _id } as any)
       const proms = hooks.map(caller => caller({ document, event }))
       return Promise.all(proms)
     }, `${action}:document`, {})
@@ -237,7 +238,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async create (d: Schema, userId?: string|ObjectId, readOnlyData?: Schema|null, event?: H3Event) {
+  async create (d: OptionalUnlessRequiredId<OaModels[T]>, userId?: string|ObjectId, readOnlyData?: Partial<OaModels[T] & Schema>|null, event?: H3Event) {
     await this.callHook('create:before', { data: d, event })
 
     this.validate(d)
@@ -245,8 +246,8 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     const at = new Date()
     if (this.timestamps.createdAt) { data.createdAt = at }
     if (this.timestamps.updatedAt) { data.updatedAt = at }
-    if (this.userstamps.createdBy) { data.createdBy = userId }
-    if (this.userstamps.updatedBy) { data.updatedBy = userId }
+    if (this.userstamps.createdBy && userId) { data.createdBy = String(userId) }
+    if (this.userstamps.updatedBy && userId) { data.updatedBy = String(userId) }
 
     await this.callHook('create:after', { data, event })
 
@@ -266,7 +267,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async update (id: string|ObjectId|undefined, d: Schema, userId?: string|ObjectId, readOnlyData?: Schema|null, event?: H3Event) {
+  async update (id: string|ObjectId|undefined, d: Partial<OaModels[T] & Schema>, userId?: string|ObjectId, readOnlyData?: Partial<OaModels[T] & Schema>|null, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
@@ -275,10 +276,10 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     if (this.timestamps.updatedAt) { data.updatedAt = new Date() }
-    if (this.userstamps.updatedBy) { data.updatedBy = userId }
+    if (this.userstamps.updatedBy && userId) { data.updatedBy = String(userId) }
 
     const instance = (this.trackedProps.length || this.cipherKey)
-      ? document ?? await this.collection.findOne({ _id }) as Schema
+      ? document ?? await this.collection.findOne({ _id } as any)
       : null
     if (this.trackedProps.length && instance) {
       const update = this.trackedProps.reduce((o, key) => ({ ...o, [key]: instance[key] }), {})
@@ -292,7 +293,7 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
       this.encrypt(data)
     }
     const { value } = await this.collection
-      .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
+      .findOneAndUpdate({ _id } as any, { $set: data }, { returnDocument: 'after' })
     if (!value) {
       throw createError({ statusCode: 404, statusMessage: 'Document not found' })
     }
@@ -314,12 +315,12 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     await this.callHook('archive:before', { id, _id, event })
     await this.callHookDocument('archive', _id, event)
 
-    const data: Record<string, any> = { deletedAt: archive ? new Date() : undefined }
+    const data: Schema = { deletedAt: archive ? new Date() : undefined }
     if (this.userstamps.deletedBy) { data.deletedBy = archive ? userId : undefined }
     await this.callHook('archive:after', { id, _id, data, event })
 
     const { value } = await this.collection
-      .findOneAndUpdate({ _id }, { $set: data }, { returnDocument: 'after' })
+      .findOneAndUpdate({ _id } as any, { $set: data } as any, { returnDocument: 'after' })
     if (!value) {
       throw createError({ statusCode: 404, statusMessage: 'Document not found' })
     }
@@ -339,15 +340,15 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
     await this.callHook('delete:before', { id, _id, event })
     await this.callHookDocument('delete', _id, event)
 
-    const { deletedCount } = await this.collection.deleteOne({ _id })
+    const { deletedCount } = await this.collection.deleteOne({ _id } as any)
 
     await this.callHook('delete:done', { data: { id }, deletedCount, event })
     return { deletedCount }
   }
 }
 
-const modelsCache: Record<string, Model> = {}
-export function useOaModel (name: string): Model {
+const modelsCache: Record<string, any> = {}
+export function useOaModel<T extends keyof OaModels & string> (name: T): Model<T> {
   if (!modelsCache[name]) {
     modelsCache[name] = new Model(name)
   }
@@ -357,7 +358,7 @@ export function useOaModel (name: string): Model {
 /**
  * @deprecated use 'useOaModel' instead
  */
-export function useModel (name: string): Model {
+export function useModel<T extends keyof OaModels & string> (name: T): Model<T> {
   logger.warn('"useModel" is deprecated. Use "useOaModel" instead.')
   return useOaModel(name)
 }

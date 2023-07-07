@@ -1,7 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb'
 import { createError } from 'h3'
 import { consola } from 'consola'
-import type { Db, Collection } from 'mongodb'
+import type { Db, Collection, Document } from 'mongodb'
 
 import { useRuntimeConfig } from '#imports'
 
@@ -25,8 +25,8 @@ export function useDb (name?: string): Db {
   return client.db(name ?? dbName)
 }
 
-export function useCol (name: string, aDb?: Db): Collection {
-  return (aDb ?? db).collection(name)
+export function useCol <TSchema extends Document = Document> (name: string, aDb?: Db): Collection<TSchema> {
+  return (aDb ?? db).collection<TSchema>(name)
 }
 
 export function useObjectId (id: number | string | ObjectId | Buffer | undefined): ObjectId {
