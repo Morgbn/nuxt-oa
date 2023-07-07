@@ -116,12 +116,12 @@ export default class Model extends Hookable<ModelNuxtOaHooks> {
    * @param d data
    */
   validate (d: Schema) {
+    this.rmPropsWithAttr(d, 'readOnly')
     const valid = this.validator(d)
     if (!valid) {
       const { errors } = this.validator
       throw createError({ statusCode: 400, statusMessage: 'Bad data', data: { errors } })
     }
-    this.rmPropsWithAttr(d, 'readOnly')
   }
 
   /**
