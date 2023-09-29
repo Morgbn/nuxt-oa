@@ -1,3 +1,10 @@
+## [1.7.5](https://github.com/Morgbn/nuxt-oa/compare/v1.7.4...v1.7.5) (2023-09-29)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: save created/updated/deletedBy as ObjecId ([ee20373](https://github.com/Morgbn/nuxt-oa/commit/ee203736622173da5d623a5d3a42c1cee2ec861d))
+
 ## [1.7.4](https://github.com/Morgbn/nuxt-oa/compare/v1.7.3...v1.7.4) (2023-09-29)
 
 
