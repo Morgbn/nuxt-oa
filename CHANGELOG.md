@@ -1,3 +1,10 @@
+## [1.7.4](https://github.com/Morgbn/nuxt-oa/compare/v1.7.3...v1.7.4) (2023-09-29)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: timestamps & userstamps types ([170c816](https://github.com/Morgbn/nuxt-oa/commit/170c816dc7d9572c8a58a19c0aabdca0f7cb6f86))
+
 ## [1.7.3](https://github.com/Morgbn/nuxt-oa/compare/v1.7.2...v1.7.3) (2023-07-07)
 
 
