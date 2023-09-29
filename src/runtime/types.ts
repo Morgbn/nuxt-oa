@@ -1,5 +1,5 @@
 import type { CipherGCMTypes } from 'node:crypto'
-import type { MongoClientOptions } from 'mongodb'
+import type { MongoClientOptions, ObjectId } from 'mongodb'
 
 // API General Info: https://swagger.io/docs/specification/api-general-info/
 export interface OpenApiGeneralInfo {
@@ -48,3 +48,7 @@ export interface ModuleOptions {
 export type Schema = { [key: string]: any }
 
 export type DefsSchema = { $id: string, definitions: Record<string, Schema> }
+
+export interface OaModels {
+  [key: string]: Schema & { _id?: ObjectId, createdAt?: Date, updatedAt?: Date, createdBy?: string, updatedBy?: string, updates: any[] }
+}

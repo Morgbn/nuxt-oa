@@ -1,5 +1,5 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { Schema } from '../../types'
+import type { Schema } from '../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
 
