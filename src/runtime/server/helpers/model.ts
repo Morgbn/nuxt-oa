@@ -60,8 +60,8 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
   encryptedProps: string[]
   cipherKey: Buffer|undefined
   trackedProps: (keyof OaModels[T])[]
-  timestamps: { createdAt?: Boolean, updatedAt?: Boolean }
-  userstamps: { createdBy?: Boolean, updatedBy?: Boolean, deletedBy?: Boolean }
+  timestamps: { createdAt?: boolean, updatedAt?: boolean }
+  userstamps: { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
   schema: Schema
   validator: ValidateFunction
   getAllCleaner: (el: Partial<OaModels[T]>) => Partial<OaModels[T]>
@@ -243,10 +243,11 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     const at = new Date()
+    const by = userId ? useObjectId(userId) : null
     if (this.timestamps.createdAt) { data.createdAt = at }
     if (this.timestamps.updatedAt) { data.updatedAt = at }
-    if (this.userstamps.createdBy && userId) { data.createdBy = String(userId) }
-    if (this.userstamps.updatedBy && userId) { data.updatedBy = String(userId) }
+    if (this.userstamps.createdBy && by) { data.createdBy = by }
+    if (this.userstamps.updatedBy && by) { data.updatedBy = by }
 
     await this.callHook('create:after', { data, event })
 
@@ -275,7 +276,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     if (this.timestamps.updatedAt) { data.updatedAt = new Date() }
-    if (this.userstamps.updatedBy && userId) { data.updatedBy = String(userId) }
+    if (this.userstamps.updatedBy && userId) { data.updatedBy = useObjectId(userId) }
 
     const instance = (this.trackedProps.length || this.cipherKey)
       ? document ?? await this.collection.findOne({ _id } as any)
@@ -315,7 +316,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     await this.callHookDocument('archive', _id, event)
 
     const data: Schema = { deletedAt: archive ? new Date() : undefined }
-    if (this.userstamps.deletedBy) { data.deletedBy = archive ? userId : undefined }
+    if (this.userstamps.deletedBy) { data.deletedBy = archive ? useObjectId(userId) : undefined }
     await this.callHook('archive:after', { id, _id, data, event })
 
     const { value } = await this.collection
