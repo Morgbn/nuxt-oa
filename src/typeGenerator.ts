@@ -138,18 +138,14 @@ export default function typeGenerator (schemasByName: Schema, defsSchemas: DefsS
     schema.required.push('id')
 
     if (schema.timestamps) {
-      const timestamps = typeof schema.timestamps === 'object'
-        ? schema.timestamps
-        : (!schema.timestamps ? {} : { createdAt: tDate, updatedAt: tDate, deletedAt: tDate })
-      schema.properties = { ...schema.properties, ...timestamps }
+      const timestamps = typeof schema.timestamps === 'object' ? schema.timestamps : { createdAt: true, updatedAt: true, deletedAt: true }
+      schema.properties = { ...schema.properties, ...Object.keys(timestamps).reduce((o, k) => ({ ...o, [k]: tDate }), {} as Record<string, typeof tDate>) }
       delete schema.timestamps
     }
 
     if (schema.userstamps) {
-      const userstamps = typeof schema.userstamps === 'object'
-        ? schema.userstamps
-        : (!schema.userstamps ? {} : { createdBy: tStr, updatedBy: tStr, deletedBy: tStr })
-      schema.properties = { ...schema.properties, ...userstamps }
+      const userstamps = typeof schema.userstamps === 'object' ? schema.userstamps : { createdBy: true, updatedBy: true, deletedBy: true }
+      schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tStr }), {} as Record<string, typeof tStr>) }
       delete schema.userstamps
     }
     const trackedProps = schema.trackedProperties?.map((prop: string) => `'${prop}'`).join(' | ')
