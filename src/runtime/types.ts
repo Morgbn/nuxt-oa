@@ -50,5 +50,5 @@ export type Schema = { [key: string]: any }
 export type DefsSchema = { $id: string, definitions: Record<string, Schema> }
 
 export interface OaModels {
-  [key: string]: Schema & { _id?: ObjectId, createdAt?: string|Date, updatedAt?: string|Date, createdBy?: string|ObjectId, updatedBy?: string|ObjectId, updates: any[] }
+  [key: string]: Schema & { _id?: ObjectId, createdAt?: string|Date, updatedAt?: string|Date, createdBy?: string|ObjectId, updatedBy?: string|ObjectId, updates?: any[] }
 }
