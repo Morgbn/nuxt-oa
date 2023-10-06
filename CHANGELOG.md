@@ -1,3 +1,10 @@
+## [1.7.6](https://github.com/Morgbn/nuxt-oa/compare/v1.7.5...v1.7.6) (2023-10-06)
+
+
+### Bug Fixes
+
+* :label: updates can be undefined ([569d9ed](https://github.com/Morgbn/nuxt-oa/commit/569d9edd045b0202769b99797eb7ee43d88e36c8))
+
 ## [1.7.5](https://github.com/Morgbn/nuxt-oa/compare/v1.7.4...v1.7.5) (2023-09-29)
 
 
