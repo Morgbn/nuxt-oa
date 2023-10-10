@@ -1,3 +1,10 @@
+## [1.7.8](https://github.com/Morgbn/nuxt-oa/compare/v1.7.7...v1.7.8) (2023-10-10)
+
+
+### Bug Fixes
+
+* :bug: stringify `schemasByName` & `defsSchemas` ([720f5f5](https://github.com/Morgbn/nuxt-oa/commit/720f5f51adb15995a48286151957367491436675))
+
 ## [1.7.7](https://github.com/Morgbn/nuxt-oa/compare/v1.7.6...v1.7.7) (2023-10-10)
 
 
