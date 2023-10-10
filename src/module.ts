@@ -61,8 +61,8 @@ export default defineNuxtModule<ModuleOptions>({
     // Set up runtime configuration
     nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
       ...options,
-      schemasByName,
-      defsSchemas
+      stringifiedSchemasByName: JSON.stringify(schemasByName),
+      stringifiedDefsSchemas: JSON.stringify(defsSchemas)
     })
 
     // Transpile runtime
@@ -147,8 +147,8 @@ export default defineNuxtModule<ModuleOptions>({
 declare module 'nuxt/schema' {
   interface RuntimeConfig {
     oa: ModuleOptions & {
-      readonly schemasByName: Record<keyof OaModels, Schema>,
-      readonly defsSchemas: DefsSchema[]
+      readonly stringifiedSchemasByName: string,
+      readonly stringifiedDefsSchemas: string
     }
   }
 }

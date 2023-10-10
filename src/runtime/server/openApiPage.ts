@@ -1,12 +1,13 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { Schema } from '../types'
+import type { DefsSchema, Schema } from '../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
 
 import { useRuntimeConfig } from '#imports'
 
-const { openApiGeneralInfo, openApiServers, schemasByName, defsSchemas } = useRuntimeConfig().oa
+const { openApiGeneralInfo, openApiServers, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
 
+const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
 const hasMultiDefsId = defsSchemas.length > 1
 const defsComponents = defsSchemas.reduce<Record<string, Schema>>((o, schema) => {
   for (const key in schema.definitions) {
@@ -17,7 +18,7 @@ const defsComponents = defsSchemas.reduce<Record<string, Schema>>((o, schema) =>
 
 const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/gm
 const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/components/schemas/$3"'
-const schemas = Object.entries(schemasByName)
+const schemas = Object.entries(JSON.parse(stringifiedSchemasByName))
   .reduce((o: Record<string, Schema>, [key, schema]) => {
     schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
     o[key] = cleanSchema(schema as Schema)

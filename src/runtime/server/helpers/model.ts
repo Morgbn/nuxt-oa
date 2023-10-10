@@ -7,7 +7,7 @@ import type { Collection, Document, ObjectId, OptionalUnlessRequiredId, WithId }
 import { HookCallback, Hookable } from 'hookable'
 import { createError } from 'h3'
 import type { H3Event } from 'h3'
-import type { Schema, OaModels } from '../../types'
+import type { Schema, OaModels, DefsSchema } from '../../types'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
@@ -15,7 +15,9 @@ import { decrypt, encrypt } from './cipher'
 import { useRuntimeConfig } from '#imports'
 
 const logger = useLogger('nuxt-oa')
-const { cipherAlgo, cipherKey, schemasByName, defsSchemas } = useRuntimeConfig().oa
+const { cipherAlgo, cipherKey, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
+const schemasByName = JSON.parse(stringifiedSchemasByName) as Record<keyof OaModels, Schema>
+const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
@@ -346,6 +348,8 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     return { deletedCount }
   }
 }
+
+export type ModelInstance = typeof Model
 
 const modelsCache: Record<string, any> = {}
 export function useOaModel<T extends keyof OaModels & string> (name: T): Model<T> {
