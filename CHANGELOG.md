@@ -1,3 +1,10 @@
+## [1.7.7](https://github.com/Morgbn/nuxt-oa/compare/v1.7.6...v1.7.7) (2023-10-10)
+
+
+### Bug Fixes
+
+* :bug: prevent read properties of null ([e47a8a2](https://github.com/Morgbn/nuxt-oa/commit/e47a8a21d87c26505cde5600b0bb3dea62e4cc46))
+
 ## [1.7.6](https://github.com/Morgbn/nuxt-oa/compare/v1.7.5...v1.7.6) (2023-10-06)
 
 
