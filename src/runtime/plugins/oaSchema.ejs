@@ -11,7 +11,7 @@ delete schema.userstamps
 if (!schema.writeOnly) {
   const stack = []
   const addToStack = parent => Object.entries(parent).forEach(([key, el]) =>
-    typeof el === 'object' ? stack.push({ key, parent, el }) : 0)
+    (el && typeof el === 'object') ? stack.push({ key, parent, el }) : 0)
   addToStack(schema)
   while(stack.length) {
     const { parent, key, el } = stack.pop()
