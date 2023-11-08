@@ -7,7 +7,7 @@ consola.log(Layer.name) // model from layer base
 const Todo = useOaModel('Todo')
 
 const auth = oaHandler((ev: H3Event) => {
-  ev.context.user = { fake_user: true, id: '#fakeUser' }
+  ev.context.user = { fake_user: true, id: new ObjectId() }
 }, {
   security: [{ jwtCookie: [] }]
 })
