@@ -94,6 +94,13 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
       const props = new Set(schema.trackedProperties)
       props.add('updatedAt')
       this.trackedProps = [...props]
+    } else if (schema.trackedProperties === true) { // track all
+      for (const key in schema.properties) {
+        if (!schema.properties[key].readOnly) { // expect readOnly properties
+          this.trackedProps.push(key)
+        }
+      }
+      this.trackedProps.push('updatedAt')
     }
     this.timestamps = typeof schema.timestamps === 'object'
       ? schema.timestamps
