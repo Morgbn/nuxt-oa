@@ -1,3 +1,15 @@
+# [1.8.0](https://github.com/Morgbn/nuxt-oa/compare/v1.7.8...v1.8.0) (2023-11-08)
+
+
+### Bug Fixes
+
+* :bug: user.id in playground auth function ([048243d](https://github.com/Morgbn/nuxt-oa/commit/048243d2f46d6e0c99a999941606406dcec600f5))
+
+
+### Features
+
+* :sparkles: add easy way to track all properties ([758cc2c](https://github.com/Morgbn/nuxt-oa/commit/758cc2c281fedcb2d16599e12b86dc11466df8d2))
+
 ## [1.7.8](https://github.com/Morgbn/nuxt-oa/compare/v1.7.7...v1.7.8) (2023-10-10)
 
 
