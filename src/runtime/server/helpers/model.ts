@@ -4,9 +4,8 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { ValidateFunction } from 'ajv'
 import type { Collection, Document, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
-import { HookCallback, Hookable } from 'hookable'
-import { createError } from 'h3'
-import type { H3Event } from 'h3'
+import { Hookable, type HookCallback } from 'hookable'
+import { createError, type H3Event } from 'h3'
 import type { Schema, OaModels, DefsSchema } from '../../types'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
@@ -89,19 +88,19 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
         throw new Error('[@nuxtjs/oa] cipherKey must be a 32-bit key')
       }
     }
-    this.trackedProps = [] // props to put in updates
+    const props = new Set<string>() // props to put in updates
     if (Array.isArray(schema.trackedProperties)) {
-      const props = new Set(schema.trackedProperties)
+      schema.trackedProperties.forEach(props.add, props)
       props.add('updatedAt')
-      this.trackedProps = [...props]
     } else if (schema.trackedProperties === true) { // track all
       for (const key in schema.properties) {
-        if (!schema.properties[key].readOnly) { // expect readOnly properties
-          this.trackedProps.push(key)
+        if (!['id', 'createdAt', 'createdBy'].includes(key) && !schema.properties[key].readOnly) { // except readOnly properties & id & createdAt/By
+          props.add(key)
         }
       }
-      this.trackedProps.push('updatedAt')
+      props.add('updatedAt')
     }
+    this.trackedProps = [...props]
     this.timestamps = typeof schema.timestamps === 'object'
       ? schema.timestamps
       : (!schema.timestamps ? {} : { createdAt: true, updatedAt: true })

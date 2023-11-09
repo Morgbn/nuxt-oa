@@ -1,9 +1,9 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
-import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate } from '@nuxt/kit'
+import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate, addTypeTemplate } from '@nuxt/kit'
 import chalk from 'chalk'
 import { defu } from 'defu'
 import genTypes from './typeGenerator'
-import type { ModuleOptions, Schema, DefsSchema, OaModels } from './runtime/types'
+import type { ModuleOptions, Schema, DefsSchema } from './runtime/types'
 
 const logger = useLogger('nuxt-oa')
 
@@ -134,12 +134,9 @@ export default defineNuxtModule<ModuleOptions>({
     })))
 
     // Add types
-    const typesPath = addTemplate({
+    addTypeTemplate({
       filename: 'types/nuxt-oa.d.ts',
       getContents: () => genTypes(schemasByName, defsSchemas)
-    }).dst
-    nuxt.hook('prepare:types', (options) => {
-      options.references.push({ path: typesPath })
     })
   }
 })
