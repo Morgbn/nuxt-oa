@@ -1,3 +1,15 @@
+# [1.9.0](https://github.com/Morgbn/nuxt-oa/compare/v1.8.0...v1.9.0) (2023-11-09)
+
+
+### Bug Fixes
+
+* :bug: `trackedProperties: true` & updates type ([5d59e9b](https://github.com/Morgbn/nuxt-oa/commit/5d59e9b8d566740e3736d7a83ca9f4e3e48c9916))
+
+
+### Features
+
+* :label: hot reload types ([78a133f](https://github.com/Morgbn/nuxt-oa/commit/78a133fc3b5340cb7f0e1483d05abe72e6c44c3c))
+
 # [1.8.0](https://github.com/Morgbn/nuxt-oa/compare/v1.7.8...v1.8.0) (2023-11-08)
 
 
