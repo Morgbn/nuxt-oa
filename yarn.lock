@@ -4898,10 +4898,10 @@ isexe@^3.1.1:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-3.1.1.tgz#4a407e2bd78ddfb14bea0c27c6f7072dde775f0d"
   integrity sha512-LpB/54B+/2J5hqQ7imZHfdU31OlgQqx7ZicVlkm9kzg9/w8GKLEcFfJl/t7DCEDueOyBAD6zCCwTO6Fzs0NoEQ==
 
-j2u@1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/j2u/-/j2u-1.5.0.tgz#a341ab7b6ac1e12eeea1f6557dfe0d06f5b45419"
-  integrity sha512-2cPzEp8QDq8JdMHyyDMiyvMhLqedrFfL7Xn2kj58hMgSTtWJ8YKnBqQ3Z1WTU3yqSipJCVBGF5zE+DBcJX8JJQ==
+j2u@^1.5.1:
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/j2u/-/j2u-1.5.1.tgz#c333e9e9c0115fa223d917cfeacfb2c5f5fca915"
+  integrity sha512-oBQerIwHfY3KBWwo6vzC/DsWNvwQCVAkmS0yGwkfKmIg4vjkRTGb3PBUgrGhxv6iD7rFYRMAJyXjjhafBRPrJw==
   dependencies:
     ajv "^8.12.0"
     ajv-formats "^3.0.0-rc.0"
