@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/Morgbn/nuxt-oa/compare/v1.9.0...v1.9.1) (2023-11-14)
+
+
+### Bug Fixes
+
+* :arrow_up: upgrade j2u ([a117c6b](https://github.com/Morgbn/nuxt-oa/commit/a117c6bc3df1b855d96d6f80d7678e2cf1c93fef))
+
 # [1.9.0](https://github.com/Morgbn/nuxt-oa/compare/v1.8.0...v1.9.0) (2023-11-09)
 
 
