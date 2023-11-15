@@ -81,7 +81,7 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro.imports.presets = nuxt.options.nitro.imports.presets || []
     nuxt.options.nitro.imports.presets.push({
       from: resolve('runtime/server/helpers/model'),
-      imports: ['useOaModel', 'useModel']
+      imports: ['useOaModel', 'useOaModelAjv']
     })
     nuxt.options.nitro.imports.presets.push({
       from: resolve('runtime/server/helpers/controllers'),

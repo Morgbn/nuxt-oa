@@ -33,7 +33,7 @@
         </template>
       </json-list>
       <dialog ref="dialog">
-        <json-schema ref="form" v-model="editedTodo" :schema="schema" :defs-schema="defsSchema" />
+        <json-schema ref="form" v-model="editedTodo" :schema="schema" :defs-schema="defsSchema" :keywords="keywords" />
         <menu>
           <button value="cancel" @click="closeTodo">
             Cancel
@@ -59,6 +59,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
+import { keywords } from '~/ajv-keywords'
 import { useFetch, useOaSchema, useOaDefsSchema } from '#imports'
 
 const schema = useOaSchema('Todo')

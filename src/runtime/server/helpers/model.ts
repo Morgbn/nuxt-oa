@@ -1,8 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import { useLogger } from '@nuxt/kit'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
-import type { ValidateFunction } from 'ajv'
+import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import type { Collection, Document, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
 import { Hookable, type HookCallback } from 'hookable'
 import { createError, type H3Event } from 'h3'
@@ -13,7 +12,6 @@ import { decrypt, encrypt } from './cipher'
 
 import { useRuntimeConfig } from '#imports'
 
-const logger = useLogger('nuxt-oa')
 const { cipherAlgo, cipherKey, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
 const schemasByName = JSON.parse(stringifiedSchemasByName) as Record<keyof OaModels, Schema>
 const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
@@ -365,10 +363,16 @@ export function useOaModel<T extends keyof OaModels & string> (name: T): Model<T
   return modelsCache[name]
 }
 
-/**
- * @deprecated use 'useOaModel' instead
- */
-export function useModel<T extends keyof OaModels & string> (name: T): Model<T> {
-  logger.warn('"useModel" is deprecated. Use "useOaModel" instead.')
-  return useOaModel(name)
+/** Add user-defined keywords to ajv instance used in OaModel */
+const addKeywords = (keywords: KeywordDefinition[]) => {
+  for (const keyword of keywords) {
+    ajv.addKeyword(keyword)
+  }
+}
+
+export function useOaModelAjv () {
+  return {
+    instance: ajv,
+    addKeywords
+  }
 }

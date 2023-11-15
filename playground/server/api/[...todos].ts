@@ -1,5 +1,10 @@
+import { ObjectId } from 'mongodb'
 import { consola } from 'consola'
 import { H3Event } from 'h3'
+import { keywords } from '~/ajv-keywords'
+
+const { addKeywords } = useOaModelAjv() // need to be called before any useOaModel()
+addKeywords(keywords)
 
 const Layer = useOaModel('Layer')
 consola.log(Layer.name) // model from layer base

@@ -12,6 +12,10 @@
         "$ref": "defs#/definitions/tag"
       }
     },
+    "cost": {
+      "type": "integer",
+      "range": [0, 250]
+    },
     "done": {
       "type": "string",
       "format": "date-time",
