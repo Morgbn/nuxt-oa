@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/Morgbn/nuxt-oa/compare/v1.9.1...v1.10.0) (2023-11-15)
+
+
+### Features
+
+* :sparkles: provide `useOaModelAjv` to access ajv instance & addKeywords ([e776977](https://github.com/Morgbn/nuxt-oa/commit/e77697719f0ae464d143126b3cee91d83e66b464))
+
 ## [1.9.1](https://github.com/Morgbn/nuxt-oa/compare/v1.9.0...v1.9.1) (2023-11-14)
 
 
