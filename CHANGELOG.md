@@ -1,3 +1,10 @@
+## [1.10.2](https://github.com/Morgbn/nuxt-oa/compare/v1.10.1...v1.10.2) (2023-12-14)
+
+
+### Bug Fixes
+
+* :arrow_up: Upgrade dependencies ([73c3128](https://github.com/Morgbn/nuxt-oa/commit/73c3128d814339d7a3d2d78fe296478f29497298))
+
 ## [1.10.1](https://github.com/Morgbn/nuxt-oa/compare/v1.10.0...v1.10.1) (2023-11-24)
 
 
