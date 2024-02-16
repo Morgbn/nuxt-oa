@@ -30,3 +30,16 @@ export default defineNuxtPlugin((nuxtApp) => {
     }
   }
 })
+
+type <%- options.modelName %>OaSchema = Omit<typeof schema, 'encryptedProperties'|'trackedProperties'|'timestamps'|'userstamps'>
+declare module '#app' {
+  interface NuxtApp {
+    $get<%- options.modelName %>OaSchema: <%- options.modelName %>OaSchema
+  }
+}
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $get<%- options.modelName %>OaSchema: <%- options.modelName %>OaSchema
+  }
+}

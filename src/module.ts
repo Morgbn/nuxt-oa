@@ -119,15 +119,17 @@ export default defineNuxtModule<ModuleOptions>({
     // Provide get[ModelName]OaSchema for each schema
     for (const modelName in schemasByName) {
       addPluginTemplate({
-        filename: `get${modelName}OaSchema.mjs`,
+        filename: `get${modelName}OaSchema.ts`,
+        write: true,
         src: resolve('runtime/plugins/oaSchema.ejs'),
         options: { schemasFolderPath: schemasFolderPathByName[modelName], modelName }
       })
     }
     // Provide getOaDefsSchema
     addPlugin(addTemplate({
-      filename: 'getOaDefsSchema.mjs',
-      getContents: () => `import { defineNuxtPlugin } from '#imports'\nconst byId = ${JSON.stringify(defsById)}\nexport default defineNuxtPlugin(() => ({ provide: { getOaDefsSchema: id => byId[id] } }))`
+      filename: 'getOaDefsSchema.ts',
+      write: true,
+      getContents: () => `import { defineNuxtPlugin } from '#imports'\nconst byId = ${JSON.stringify(defsById)}\nexport type OaDefSchemaKey = keyof typeof byId\nexport default defineNuxtPlugin(() => ({ provide: { getOaDefsSchema: (id: OaDefSchemaKey) => byId[id] } }))`
     }).dst)
 
     // Add j2u (auto form generator)
