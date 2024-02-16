@@ -1,3 +1,10 @@
+## [1.10.3](https://github.com/Morgbn/nuxt-oa/compare/v1.10.2...v1.10.3) (2024-02-16)
+
+
+### Bug Fixes
+
+* :label: better `useOaSchema` & `useOaDefsSchema` types ([610a4a8](https://github.com/Morgbn/nuxt-oa/commit/610a4a8b95961a891b71ec3a0dc6b21f61aa62b2))
+
 ## [1.10.2](https://github.com/Morgbn/nuxt-oa/compare/v1.10.1...v1.10.2) (2023-12-14)
 
 
