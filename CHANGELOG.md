@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/Morgbn/nuxt-oa/compare/v1.10.3...v1.11.0) (2024-02-19)
+
+
+### Features
+
+* :sparkles: add `findEncrypted` and `findOneEncrypted` ([bef68ed](https://github.com/Morgbn/nuxt-oa/commit/bef68ed4f4e9c80e9c22d54fb969641e4e8f731c))
+
 ## [1.10.3](https://github.com/Morgbn/nuxt-oa/compare/v1.10.2...v1.10.3) (2024-02-16)
 
 
