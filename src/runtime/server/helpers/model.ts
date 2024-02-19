@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { KeywordDefinition, ValidateFunction } from 'ajv'
-import type { Collection, Document, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
+import type { Collection, Document, Filter, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
 import { Hookable, type HookCallback } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { Schema, OaModels, DefsSchema } from '../../types'
@@ -350,6 +350,39 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
 
     await this.callHook('delete:done', { data: { id }, deletedCount, event })
     return { deletedCount }
+  }
+
+  private async cursorFindEncrypted (filter: Filter<OaModels[T]>, multiple: boolean) {
+    const r: OaModels[T][] = []
+    if (this.cipherKey) {
+      const cursor = this.collection.find()
+      const keys = Object.keys(filter)
+      for await (const doc of cursor) {
+        const iv = doc._iv
+        if (!iv) { continue } // not encrypted
+        let same = true
+        for (let i = 0; i < keys.length && same; i++) {
+          const key = keys[i]
+          const decrypted = decrypt(doc[key], iv, this.cipherKey, cipherAlgo)
+          same = JSON.stringify(decrypted) === JSON.stringify(filter[key])
+        }
+        if (same) {
+          r.push(doc)
+          if (!multiple) { return r }
+        }
+      }
+    }
+    return r
+  }
+
+  /** Selects encrypted documents and returns the selected documents */
+  async findEncrypted (filter: Filter<OaModels[T]>): Promise<OaModels[T][]> {
+    return await this.cursorFindEncrypted(filter, true)
+  }
+
+  /** Selects encrypted document and returns the selected document */
+  async findOneEncrypted (filter: Filter<OaModels[T]>): Promise<OaModels[T]|null> {
+    return (await this.cursorFindEncrypted(filter, false))[0] ?? null
   }
 }
 
