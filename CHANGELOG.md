@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/Morgbn/nuxt-oa/compare/v1.11.0...v1.11.1) (2024-05-21)
+
+
+### Bug Fixes
+
+* :bug: $ref type ([0779ec5](https://github.com/Morgbn/nuxt-oa/commit/0779ec59103320c1a89036195b035ee97e3bea9c))
+
 # [1.11.0](https://github.com/Morgbn/nuxt-oa/compare/v1.10.3...v1.11.0) (2024-02-19)
 
 
