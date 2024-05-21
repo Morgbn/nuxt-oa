@@ -37,7 +37,7 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
     if (propSchema.description) {
       str += `  /**${['', ...propSchema.description.trim().split('\n')].join('\n   * ')}\n   */\n`
     }
-    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${propName}${schema.required && schema.required.includes(propName) ? '' : '?'}: `
+    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${propName}${schema.required?.includes(propName) ? '' : '?'}: `
 
     const propInterfaceName = `${interfaceName}${capFirst(propName)}`
     if (propSchema.type === 'array') {
@@ -63,6 +63,10 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
 
 function genType (schema: Schema, interfaceName: string, stack: Stack) {
   let str = `type ${interfaceName} = `
+  if (schema.$ref) {
+    const [, defName, keyName] = schema.$ref.match(refRe)
+    return `${str}Oa${capFirst(defName)}${capFirst(keyName)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
+  }
   if (schema.enum) {
     str += schema.enum
       .map((v: any) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
@@ -70,7 +74,7 @@ function genType (schema: Schema, interfaceName: string, stack: Stack) {
   } else {
     str += schema.type ?? 'any'
   }
-  if (schema.anyOf) {
+  if (schema.anyOf) { // validates the value against any (one or more) of the sub-schemas
     const anyOf = []
     for (let i = 0; i < schema.anyOf.length; i++) {
       const propertyInterfaceName = `${interfaceName}Item${i}`
@@ -80,7 +84,7 @@ function genType (schema: Schema, interfaceName: string, stack: Stack) {
     str += anyOf.join(' | ')
     str += '// AnyOf'
   }
-  if (schema.oneOf) {
+  if (schema.oneOf) { // validates the value against exactly one of the sub-schemas
     const oneOf = []
     for (let i = 0; i < schema.oneOf.length; i++) {
       const propertyInterfaceName = `${interfaceName}Item${i}`
@@ -89,7 +93,7 @@ function genType (schema: Schema, interfaceName: string, stack: Stack) {
     }
     str += ` & OneOf<${oneOf.join('|')}>`
   }
-  if (schema.allOf) {
+  if (schema.allOf) { // validates the value against all the sub-schemas
     const allOf = []
     for (let i = 0; i < schema.allOf.length; i++) {
       const propertyInterfaceName = `${interfaceName}Item${i}`
@@ -113,7 +117,6 @@ function genTypes (schema: Schema, interfaceName: string) {
   const types = []
   while (stack.length) {
     const [schema, interfaceName] = stack.shift()!
-
     if (schema.properties) {
       types.push(genInterface(schema, interfaceName, stack))
     } else {
@@ -139,13 +142,13 @@ function typeGenerator (schemasByName: Schema, defsSchemas: DefsSchema[] = []): 
     schema.required.push('id')
 
     if (schema.timestamps) {
-      const timestamps = typeof schema.timestamps === 'object' ? schema.timestamps : { createdAt: true, updatedAt: true, deletedAt: true }
+      const timestamps = schema.timestamps === true ? { createdAt: true, updatedAt: true, deletedAt: true } : (schema.timestamps || {})
       schema.properties = { ...schema.properties, ...Object.keys(timestamps).reduce((o, k) => ({ ...o, [k]: tDate }), {} as Record<string, typeof tDate>) }
       delete schema.timestamps
     }
 
     if (schema.userstamps) {
-      const userstamps = typeof schema.userstamps === 'object' ? schema.userstamps : { createdBy: true, updatedBy: true, deletedBy: true }
+      const userstamps = schema.userstamps === true ? { createdBy: true, updatedBy: true, deletedBy: true } : (schema.userstamps || {})
       schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tStr }), {} as Record<string, typeof tStr>) }
       delete schema.userstamps
     }
