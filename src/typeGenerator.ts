@@ -53,6 +53,8 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
       if (propSchema.nullable) {
         str += '|null'
       }
+    } else if (propSchema.type === 'object' && typeof propSchema.additionalProperties === 'object' && Object.keys(propSchema.additionalProperties).length) {
+      str += `Record<string, ${simplestType(propSchema.additionalProperties, `${propInterfaceName}Item`, stack)}|undefined>${propSchema.nullable ? '|null' : ''}`
     } else {
       str += simplestType(propSchema, propInterfaceName, stack)
     }
