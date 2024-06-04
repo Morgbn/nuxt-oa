@@ -37,9 +37,10 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
     if (propSchema.description) {
       str += `  /**${['', ...propSchema.description.trim().split('\n')].join('\n   * ')}\n   */\n`
     }
-    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${propName}${schema.required?.includes(propName) ? '' : '?'}: `
+    const match = propName.match('\\W')
+    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${match ? "'" : ''}${propName}${match ? "'" : ''}${schema.required?.includes(propName) ? '' : '?'}: `
 
-    const propInterfaceName = `${interfaceName}${capFirst(propName)}`
+    const propInterfaceName = `${interfaceName}${capFirst(propName.replace(/\W/g, ''))}`
     if (propSchema.type === 'array') {
       const itemInterfaceName = `${propInterfaceName}Item`
       if (Array.isArray(propSchema.items)) {
