@@ -11,7 +11,7 @@ type _ExclusiveUnion<T, K extends PropertyKey> =
 type OneOf<T> = _ExclusiveUnion<T, _AllKeys<T>>`
 
 const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
-const jsonKey = (str: string) => str.match('\\W') ? `'${str}'` : str
+const jsonKey = (str: string) => str.match(/\W/g) ? `'${str}'` : str
 
 const refRe = /(\w+)(?:\.\w+)?#(?:\/(\w+))+/
 function simplestType (schema: Schema, interfaceName: string, stack: Stack): string {
