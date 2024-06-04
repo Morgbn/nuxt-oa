@@ -11,6 +11,7 @@ type _ExclusiveUnion<T, K extends PropertyKey> =
 type OneOf<T> = _ExclusiveUnion<T, _AllKeys<T>>`
 
 const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
+const jsonKey = (str: string) => str.match('\\W') ? `'${str}'` : str
 
 const refRe = /(\w+)(?:\.\w+)?#(?:\/(\w+))+/
 function simplestType (schema: Schema, interfaceName: string, stack: Stack): string {
@@ -28,6 +29,24 @@ function simplestType (schema: Schema, interfaceName: string, stack: Stack): str
   }
   return `${schema.type ?? 'any'}${suffix}`
 }
+function dicType (schema: Schema, interfaceName: string, stack: Stack): string {
+  const dicType = simplestType(schema.additionalProperties, `${interfaceName}Item`, stack)
+  const requiredKeys: string[] = ['string']
+
+  if (schema.properties) {
+    for (const key of Object.keys(schema.properties)) {
+      const sc = schema.properties[key]
+      const type = simplestType(sc, `${interfaceName}Item`, [])
+      if (type !== dicType) {
+        throw new Error(`${interfaceName} properties types must be the same as additionalProperties`)
+      }
+      if (schema.required?.includes(key)) {
+        requiredKeys.push(jsonKey(key))
+      }
+    }
+  }
+  return `Record<${requiredKeys.join('|')}, ${dicType}|undefined>${schema.nullable ? '|null' : ''}`
+}
 
 function genInterface (schema: Schema, interfaceName: string, stack: Stack): string {
   let str = `\ninterface ${interfaceName} {\n`
@@ -37,8 +56,7 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
     if (propSchema.description) {
       str += `  /**${['', ...propSchema.description.trim().split('\n')].join('\n   * ')}\n   */\n`
     }
-    const match = propName.match('\\W')
-    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${match ? "'" : ''}${propName}${match ? "'" : ''}${schema.required?.includes(propName) ? '' : '?'}: `
+    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${jsonKey(propName)}${schema.required?.includes(propName) ? '' : '?'}: `
 
     const propInterfaceName = `${interfaceName}${capFirst(propName.replace(/\W/g, ''))}`
     if (propSchema.type === 'array') {
@@ -55,7 +73,7 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
         str += '|null'
       }
     } else if (propSchema.type === 'object' && typeof propSchema.additionalProperties === 'object' && Object.keys(propSchema.additionalProperties).length) {
-      str += `Record<string, ${simplestType(propSchema.additionalProperties, `${propInterfaceName}Item`, stack)}|undefined>${propSchema.nullable ? '|null' : ''}`
+      str += dicType(propSchema, propInterfaceName, stack)
     } else {
       str += simplestType(propSchema, propInterfaceName, stack)
     }
