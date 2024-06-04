@@ -1,3 +1,13 @@
+## [1.11.2](https://github.com/Morgbn/nuxt-oa/compare/v1.11.1...v1.11.2) (2024-06-04)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: jsonKey use RegExp instead of string ([d34e9c7](https://github.com/Morgbn/nuxt-oa/commit/d34e9c703937eacb140d5716966dd5e8456a2005))
+* :bug: dicType with properties & additionalProperties & required ([f097d79](https://github.com/Morgbn/nuxt-oa/commit/f097d79c51aa20810da4cfcbffffc188ee90c1d9))
+* :bug: genInterface prop with non word chars ([dc345f4](https://github.com/Morgbn/nuxt-oa/commit/dc345f4c4cc4fa7ffec942b31922ea5f55ec026c))
+* :label: genInterface support schema dictionnaries ([d7ff3f5](https://github.com/Morgbn/nuxt-oa/commit/d7ff3f5976489b68f1dd9d7f94370a3c4df59ace))
+
 ## [1.11.1](https://github.com/Morgbn/nuxt-oa/compare/v1.11.0...v1.11.1) (2024-05-21)
 
 
