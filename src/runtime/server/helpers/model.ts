@@ -12,7 +12,7 @@ import { decrypt, encrypt } from './cipher'
 
 import { useRuntimeConfig } from '#imports'
 
-const { cipherAlgo, cipherKey, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
+const { cipherAlgo, cipherKey, cipherIvSize, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
 const schemasByName = JSON.parse(stringifiedSchemasByName) as Record<keyof OaModels, Schema>
 const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
 
@@ -169,7 +169,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     if (!this.cipherKey) { return }
     let _iv = d._iv
     if (!_iv) {
-      d._iv = _iv = randomBytes(16).toString('base64')
+      d._iv = _iv = randomBytes(cipherIvSize).toString('base64')
     }
     for (const key of this.encryptedProps) {
       if (d[key] !== undefined && d[key] !== null) {

@@ -59,6 +59,7 @@ export default defineNuxtModule<ModuleOptions>({
     dbOptions: {},
     schemasFolder: 'schemas',
     cipherAlgo: 'aes-256-gcm',
+    cipherIvSize: 16,
     openApiPath: '/api-doc/openapi.json',
     swaggerPath: '/api-doc'
   },

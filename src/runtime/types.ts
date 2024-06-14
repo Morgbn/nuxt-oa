@@ -34,11 +34,12 @@ export interface OpenApiServer {
 }
 
 export interface ModuleOptions {
-  schemasFolder: string,
+  schemasFolder: string
   dbUrl?: string
   dbOptions?: MongoClientOptions
   cipherAlgo: CipherGCMTypes
   cipherKey?: string
+  cipherIvSize?: number
   openApiPath?: string
   openApiGeneralInfo?: OpenApiGeneralInfo
   openApiServers?: OpenApiServer[]
