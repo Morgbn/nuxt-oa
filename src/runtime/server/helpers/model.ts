@@ -12,7 +12,7 @@ import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
-import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro.js'
+import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro'
 
 const { cipherAlgo, cipherKey, cipherIvSize } = useOaConfig()
 const { schemasByName, defsSchemas } = useOaServerSchema()

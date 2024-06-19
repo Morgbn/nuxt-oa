@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
 import type Model from './model'
 import { oaHandler } from './router'
-import type { OaModelName } from '~/.nuxt/oa/nitro.js'
+import type { OaModelName } from '~/.nuxt/oa/nitro'
 
 const instance200 = (name: string) => ({
   description: `Updated ${name.toLowerCase()}.`,
