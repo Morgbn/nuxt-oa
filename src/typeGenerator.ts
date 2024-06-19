@@ -20,7 +20,7 @@ function simplestType (schema: Schema, interfaceName: string, stack: Stack): str
     const [, defName, keyName] = schema.$ref.match(refRe)
     return `Oa${capFirst(defName)}${capFirst(keyName)}${suffix}`
   }
-  if (schema.properties || schema.enum || schema.anyOf || schema.oneOf || schema.allOf || schema.not) {
+  if (schema.properties || schema.additionalProperties || schema.enum || schema.anyOf || schema.oneOf || schema.allOf || schema.not) {
     stack.push([schema, interfaceName])
     return `${interfaceName}${suffix}`
   }
@@ -84,6 +84,9 @@ function genInterface (schema: Schema, interfaceName: string, stack: Stack): str
 
 function genType (schema: Schema, interfaceName: string, stack: Stack) {
   let str = `type ${interfaceName} = `
+  if (schema.additionalProperties && Object.keys(schema.additionalProperties).length) {
+    return `${str}${dicType(schema, interfaceName, stack)}`
+  }
   if (schema.$ref) {
     const [, defName, keyName] = schema.$ref.match(refRe)
     return `${str}Oa${capFirst(defName)}${capFirst(keyName)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
