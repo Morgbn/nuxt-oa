@@ -1,7 +1,7 @@
 import { defineEventHandler } from 'h3'
-import { useRuntimeConfig } from '#imports'
+import { useOaConfig } from './helpers/config'
 
-const { openApiPath } = useRuntimeConfig().oa
+const { openApiPath } = useOaConfig()
 
 export default defineEventHandler(event => `<html>
   <head>

@@ -92,6 +92,10 @@ export default defineNuxtModule<ModuleOptions>({
       from: resolve('runtime/server/helpers/db'),
       imports: ['useMongoClient', 'useDb', 'useCol', 'useObjectId']
     })
+    nuxt.options.nitro.virtual = defu(
+      { '#oa-config': () => `export default ${JSON.stringify(nuxt.options.runtimeConfig.oa)}` },
+      nuxt.options.nitro.virtual
+    )
 
     // Add doc routes
     if (options.openApiPath) {
@@ -225,12 +229,3 @@ export default defineNuxtModule<ModuleOptions>({
     })
   }
 })
-
-declare module 'nuxt/schema' {
-  interface NuxtOptions {
-    oa: ModuleOptions
-  }
-  interface RuntimeConfig {
-    oa: ModuleOptions
-  }
-}

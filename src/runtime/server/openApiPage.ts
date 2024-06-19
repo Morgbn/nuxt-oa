@@ -1,11 +1,11 @@
 import { defineEventHandler, setHeader } from 'h3'
 import type { Schema } from '../types'
 import { cleanSchema } from './helpers/model'
+import { useOaConfig } from './helpers/config'
 import { paths, components } from './helpers/router'
-import { useRuntimeConfig } from '#imports'
 import { oaDefsSchemas, oaSchemasByName } from '~/.nuxt/oa/nitro.js'
 
-const { openApiGeneralInfo, openApiServers } = useRuntimeConfig().oa
+const { openApiGeneralInfo, openApiServers } = useOaConfig()
 
 const hasMultiDefsId = oaDefsSchemas.length > 1
 const defsComponents = oaDefsSchemas.reduce<Record<string, Schema>>((o, schema) => {

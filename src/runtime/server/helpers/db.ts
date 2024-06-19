@@ -2,10 +2,9 @@ import { MongoClient, ObjectId } from 'mongodb'
 import { createError } from 'h3'
 import { consola } from 'consola'
 import type { Db, Collection, Document } from 'mongodb'
+import { useOaConfig } from './config'
 
-import { useRuntimeConfig } from '#imports'
-
-const { dbUrl, dbOptions } = useRuntimeConfig().oa
+const { dbUrl, dbOptions } = useOaConfig()
 
 const client = new MongoClient(dbUrl ?? '', dbOptions)
 client.connect()

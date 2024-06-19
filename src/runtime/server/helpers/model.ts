@@ -11,10 +11,10 @@ import type { Schema } from '../../types'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
-import { useRuntimeConfig } from '#imports'
+import { useOaConfig } from './config'
 import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro.js'
 
-const { cipherAlgo, cipherKey, cipherIvSize } = useRuntimeConfig().oa
+const { cipherAlgo, cipherKey, cipherIvSize } = useOaConfig()
 const { schemasByName, defsSchemas } = useOaServerSchema()
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
