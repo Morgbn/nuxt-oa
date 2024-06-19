@@ -17,7 +17,7 @@
   "scripts": {
     "build": "nuxt-module-build build",
     "dev": "nuxi dev playground",
-    "lint": "eslint --ext .js,.ts,.vue .",
+    "lint": "eslint .",
     "dev:build": "nuxi build playground",
     "prepack": "yarn build",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground"
@@ -35,10 +35,10 @@
     "ufo": "^1.5.3"
   },
   "devDependencies": {
+    "@nuxt/eslint-config": "^0.3.13",
     "@nuxt/module-builder": "^0.6.0",
     "@nuxt/schema": "^3.11.2",
-    "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "eslint": "^8.56.0",
+    "eslint": "^9.5.0",
     "nuxt": "^3.11.2",
     "typescript": "^5.4.5"
   },
