@@ -6,10 +6,10 @@ type Method = typeof methods[number]
 type DocFn = <T extends object>(doc?: T) => T
 
 export interface OaFunction extends EventHandler {
-  __apiDoc?: object|DocFn
+  __apiDoc?: object | DocFn
 }
 
-export function oaHandler (func: OaFunction, schema: object|DocFn = {}): OaFunction {
+export function oaHandler(func: OaFunction, schema: object | DocFn = {}): OaFunction {
   func.__apiDoc = schema
   return func
 }
@@ -30,15 +30,15 @@ export interface OaRouter extends EventHandler {
   trace: OaRouterFunc<OaRouter>
 }
 
-export const paths: Record<string, {[key in Method]?: object}> = {}
+export const paths: Record<string, { [key in Method]?: object }> = {}
 
-const upsertPath = (p: string): {[key in Method]?: object} =>
+const upsertPath = (p: string): { [key in Method]?: object } =>
   paths[p] ? paths[p] : (paths[p] = {})
 
 const pathParamRe = /\/\*|\/:(\w+)/g // regex to transform radix3 placeholder (:slug) into openapi path parameter ({slug})
 const oaPathParam = '/{$1}'
 
-export function createOaRouter (basePath: string, opts: CreateRouterOptions = {}): OaRouter {
+export function createOaRouter(basePath: string, opts: CreateRouterOptions = {}): OaRouter {
   const router = createRouter(opts)
   const oaRouter = useBase(basePath, router.handler) as OaRouter
   for (const method of methods) {
@@ -60,7 +60,7 @@ export function createOaRouter (basePath: string, opts: CreateRouterOptions = {}
       }
       const lastFunc = stack.pop() || (async () => {})
       router.add(path, eventHandler(async (event) => {
-        for (const middleware of stack) { await middleware(event) }
+        for (const middleware of stack) await middleware(event)
         return await lastFunc(event)
       }), method)
       return oaRouter
@@ -70,6 +70,6 @@ export function createOaRouter (basePath: string, opts: CreateRouterOptions = {}
 }
 
 export const components: Record<string, object> = {}
-export function oaComponent (name: string, schema: object) {
+export function oaComponent(name: string, schema: object) {
   components[name] = schema
 }

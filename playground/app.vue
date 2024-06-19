@@ -8,18 +8,27 @@
       <button @click="openTodo({ id: 'new', text: '' })">
         + Add a todo
       </button>
-      <json-list :items="todos" :schema="schema">
+      <json-list
+        :items="todos"
+        :schema="schema"
+      >
         <template #table-header="{ sortBy, sortDesc }">
-          <div :style="{ display: 'grid', gridTemplateColumns: '100px 1fr',gap: '20px', userSelect: 'none' }">
+          <div :style="{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '20px', userSelect: 'none' }">
             <span>Text {{ sortBy === 'text' ? (sortDesc ? '↑' : '↓') : '' }}</span>
             <span>Actions</span>
           </div>
         </template>
         <template #item="{ item: t, view }">
-          <div class="item" :style="view === 'card' ? {} : { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '20px' }">
+          <div
+            class="item"
+            :style="view === 'card' ? {} : { display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '20px' }"
+          >
             <p><b>{{ t.text }}</b></p>
             <div>
-              <button :disabled="t.deletedAt" @click="openTodo(t)">
+              <button
+                :disabled="t.deletedAt"
+                @click="openTodo(t)"
+              >
                 ✏️
               </button>
               <button @click="archiveTodo(t)">
@@ -33,12 +42,24 @@
         </template>
       </json-list>
       <dialog ref="dialog">
-        <json-schema ref="form" v-model="editedTodo" :schema="schema" :defs-schema="defsSchema" :keywords="keywords" />
+        <json-schema
+          ref="form"
+          v-model="editedTodo"
+          :schema="schema"
+          :defs-schema="defsSchema"
+          :keywords="keywords"
+        />
         <menu>
-          <button value="cancel" @click="closeTodo">
+          <button
+            value="cancel"
+            @click="closeTodo"
+          >
             Cancel
           </button>
-          <button value="default" @click="updateTodo">
+          <button
+            value="default"
+            @click="updateTodo"
+          >
             Save
           </button>
         </menu>
@@ -46,22 +67,31 @@
       <button @click="testWithRandomId">
         Delete with random id
       </button>
-      <button v-if="todos.length" @click="testWithBadData">
+      <button
+        v-if="todos.length"
+        @click="testWithBadData"
+      >
         Update with bad data
       </button>
-      <button v-if="todos.length" @click="testWriteReadOnly">
+      <button
+        v-if="todos.length"
+        @click="testWriteReadOnly"
+      >
         Update a read only property
       </button>
     </template>
-    <pre v-if="msg" :style="{ color: msgColor }">{{ msg }}</pre>
+    <pre
+      v-if="msg"
+      :style="{ color: msgColor }"
+    >{{ msg }}</pre>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue'
+import { JsonSchema } from 'j2u'
 import { keywords } from '~/ajv-keywords'
 import { useFetch, useOaSchema, useOaDefsSchema, useNuxtApp } from '#imports'
-import { JsonSchema } from 'j2u'
 
 const schema = useNuxtApp().$getTodoOaSchema
 const schema2 = useOaSchema('Todo')
@@ -70,7 +100,7 @@ const defsSchema = useOaDefsSchema('defs')
 // const s = schema.properties.cost.range
 // const s2 = schema2.properties
 
-const msg = ref<string|null>(null)
+const msg = ref<string | null>(null)
 const msgColor = ref('green')
 const { data: todos, pending } = await useFetch('/api/todos', { lazy: true })
 
@@ -90,8 +120,8 @@ const msgWrapper = <T extends object>(func: (arg: T) => Promise<any>) => async (
   }
 }
 
-const editedTodo = ref<OaTodo|null>(null)
-const dialog = ref<HTMLDialogElement|null>(null)
+const editedTodo = ref<OaTodo | null>(null)
+const dialog = ref<HTMLDialogElement | null>(null)
 const openTodo = (todo: OaTodo) => {
   dialog.value?.showModal()
   editedTodo.value = JSON.parse(JSON.stringify(todo))
@@ -101,10 +131,10 @@ const closeTodo = () => {
   editedTodo.value = null
 }
 
-const form = ref<InstanceType<typeof JsonSchema>|null>(null)
+const form = ref<InstanceType<typeof JsonSchema> | null>(null)
 const updateTodo = msgWrapper(async () => {
-  if (!await form.value?.validate()) { return {} }
-  if (!editedTodo.value) { return }
+  if (!await form.value?.validate()) return {}
+  if (!editedTodo.value) return
   const isNew = editedTodo.value.id === 'new'
   const { id, ...body } = editedTodo.value
   const { data, error } = await useFetch(`/api/todos/${isNew ? '' : id}`, {
@@ -123,13 +153,13 @@ const updateTodo = msgWrapper(async () => {
 
 const archiveTodo = msgWrapper(async ({ id, deletedAt }: OaTodo) => {
   const { data, error } = await useFetch('/api/todos/' + id + '/archive', { method: 'POST', body: { archive: !deletedAt } })
-  if (!error.value) { todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value) }
+  if (!error.value) todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value)
   return { data, error }
 })
 
 const rmTodo = msgWrapper(async ({ id }: OaTodo) => {
   const { data, error } = await useFetch('/api/todos/' + id, { method: 'DELETE' })
-  if (!error.value) { todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1) }
+  if (!error.value) todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1)
   return { data, error }
 })
 

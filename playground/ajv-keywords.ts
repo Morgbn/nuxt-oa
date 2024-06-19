@@ -2,7 +2,7 @@ import type { KeywordDefinition } from 'ajv'
 
 export const keywords: KeywordDefinition[] = [{
   keyword: 'range', // example from https://ajv.js.org/keywords.html#define-keyword-with-validate-function
-  validate ([min, max], data, parentSchema, _dataCxt) {
+  validate([min, max], data, parentSchema, _dataCxt) {
     return data >= min && data <= max
   },
   error: {

@@ -6,10 +6,10 @@ import type { CipherGCMTypes } from 'node:crypto'
  * Encrypt data
  * @returns encrypted data
  */
-export function encrypt (data: any, iv: string, key: Buffer, algorithm: CipherGCMTypes): string {
-  if (data === null || typeof data === 'undefined') { return data }
+export function encrypt(data: any, iv: string, key: Buffer, algorithm: CipherGCMTypes): string {
+  if (data === null || typeof data === 'undefined') return data
   const isObj = typeof data === 'object'
-  if (isObj) { data = JSON.stringify(data) }
+  if (isObj) data = JSON.stringify(data)
   const ivBuffer = Buffer.from(iv, 'base64')
   let encrypted: Buffer | undefined
   let encryptedStr = ''
@@ -19,7 +19,7 @@ export function encrypt (data: any, iv: string, key: Buffer, algorithm: CipherGC
     encryptedStr = `${isObj ? 'o' : ''}$${encrypted.toString('base64')}$${cipher.getAuthTag().toString('base64')}`
   } finally { // erase sensitive data
     ivBuffer.fill(0)
-    if (Buffer.isBuffer(encrypted)) { encrypted.fill(0) }
+    if (Buffer.isBuffer(encrypted)) encrypted.fill(0)
   }
   return encryptedStr
 }
@@ -28,10 +28,10 @@ export function encrypt (data: any, iv: string, key: Buffer, algorithm: CipherGC
  * Decrypt data
  * @returns decrypted data
  */
-export function decrypt (data: any, iv: string, key: Buffer, algorithm: CipherGCMTypes): string|Record<string, any>|undefined {
-  if (typeof data !== 'string') { return data }
+export function decrypt(data: any, iv: string, key: Buffer, algorithm: CipherGCMTypes): string | Record<string, any> | undefined {
+  if (typeof data !== 'string') return data
   const [isObj, encrypted, authTag] = data.split('$')
-  if (!encrypted) { return undefined }
+  if (!encrypted) return undefined
   const ivBuffer = Buffer.from(iv, 'base64')
   const authTagBuffer = Buffer.from(authTag, 'base64')
   const encryptedBuffer = Buffer.from(encrypted, 'base64')
@@ -46,7 +46,7 @@ export function decrypt (data: any, iv: string, key: Buffer, algorithm: CipherGC
     ivBuffer.fill(0)
     authTagBuffer.fill(0)
     encryptedBuffer.fill(0)
-    if (Buffer.isBuffer(decrypted)) { decrypted.fill(0) }
+    if (Buffer.isBuffer(decrypted)) decrypted.fill(0)
   }
   return isObj && decryptedStr ? JSON.parse(decryptedStr) : decryptedStr
 }

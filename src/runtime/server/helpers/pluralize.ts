@@ -54,9 +54,9 @@ const uncountables: string[] = [
   'media'
 ]
 
-export function pluralize (str: string): string {
+export function pluralize(str: string): string {
   str = str.toLowerCase()
-  if (uncountables.includes(str)) { return str }
+  if (uncountables.includes(str)) return str
   const found = rules.find(r => str.match(r[0]))
   return found ? str.replace(found[0], found[1] as string) : str
 }

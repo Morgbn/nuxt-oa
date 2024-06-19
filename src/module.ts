@@ -16,14 +16,14 @@ const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
   for (const layer of nuxt.options._layers) {
     const { oa } = layer.config
     if (oa) {
-      if (!options.dbUrl && oa.dbUrl) { options.dbUrl = oa.dbUrl } // earlier = higher priority
-      if (!options.openApiPath && oa.openApiPath) { options.openApiPath = oa.openApiPath }
-      if (!options.swaggerPath && oa.swaggerPath) { options.swaggerPath = oa.swaggerPath }
+      if (!options.dbUrl && oa.dbUrl) options.dbUrl = oa.dbUrl // earlier = higher priority
+      if (!options.openApiPath && oa.openApiPath) options.openApiPath = oa.openApiPath
+      if (!options.swaggerPath && oa.swaggerPath) options.swaggerPath = oa.swaggerPath
     }
     const layerResolver = createResolver(layer.cwd)
     const schemasFolderPath = layerResolver.resolve(oa?.schemasFolder ?? options.schemasFolder)
-    if (!existsSync(schemasFolderPath)) { continue }
-    if (!lstatSync(schemasFolderPath).isDirectory()) { continue }
+    if (!existsSync(schemasFolderPath)) continue
+    if (!lstatSync(schemasFolderPath).isDirectory()) continue
     const schemasResolver = createResolver(schemasFolderPath)
     for (const file of readdirSync(schemasFolderPath)) { // Read schemas
       const name = file.split('.').slice(0, -1).join('.')
@@ -62,7 +62,7 @@ export default defineNuxtModule<ModuleOptions>({
     openApiPath: '/api-doc/openapi.json',
     swaggerPath: '/api-doc'
   },
-  async setup (options, nuxt) {
+  async setup(options, nuxt) {
     const { schemasByName, defsSchemas, schemasFolderPathByName, defsById } = getSchemas(options, nuxt)
 
     // Set up runtime configuration
@@ -110,8 +110,8 @@ export default defineNuxtModule<ModuleOptions>({
         const { withTrailingSlash, withoutTrailingSlash } = await import('ufo')
         nuxt.hook('listen', (_, listener) => {
           const viewerUrl = `${withoutTrailingSlash(listener.url)}${options.swaggerPath}`
-          logger.log(`  ${chalk.yellowBright('➜ Swagger')}:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))} ` +
-            `${chalk.gray(`${Object.keys(schemasByName).length} schema(s) found`)}\n`)
+          logger.log(`  ${chalk.yellowBright('➜ Swagger')}:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))} `
+          + `${chalk.gray(`${Object.keys(schemasByName).length} schema(s) found`)}\n`)
         })
       }
     }

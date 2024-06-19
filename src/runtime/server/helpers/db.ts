@@ -21,17 +21,19 @@ client.connect()
 const dbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
 const db = client.db(dbName)
 
-export function useMongoClient () { return client }
+export function useMongoClient() {
+  return client
+}
 
-export function useDb (name?: string): Db {
+export function useDb(name?: string): Db {
   return client.db(name ?? dbName)
 }
 
-export function useCol <TSchema extends Document = Document> (name: string, aDb?: Db): Collection<TSchema> {
+export function useCol<TSchema extends Document = Document>(name: string, aDb?: Db): Collection<TSchema> {
   return (aDb ?? db).collection<TSchema>(name)
 }
 
-export function useObjectId (id: number | string | ObjectId | Buffer | undefined): ObjectId {
+export function useObjectId(id: number | string | ObjectId | Buffer | undefined): ObjectId {
   if (!id || !ObjectId.isValid(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Bad id' })
   }

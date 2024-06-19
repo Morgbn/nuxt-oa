@@ -24,7 +24,7 @@ const modelIdInPath = (name: string) => ({
   description: `Object Id of the ${name.toLowerCase()}`
 })
 
-export function useUserId (event: H3Event): string|ObjectId {
+export function useUserId(event: H3Event): string | ObjectId {
   if (!event.context.user?.id) {
     throw createError({ statusCode: 400, statusMessage: 'No user.id in event.context' })
   }

@@ -20,7 +20,9 @@ const auth = oaHandler((ev: H3Event) => {
   security: [{ jwtCookie: [] }]
 })
 
-const setReadOnlyProp = (d: { readOnlyProp?: string, privateN?: number }) => { d.readOnlyProp = 'privateN=' + (d.privateN ?? 0) }
+const setReadOnlyProp = (d: { readOnlyProp?: string, privateN?: number }) => {
+  d.readOnlyProp = 'privateN=' + (d.privateN ?? 0)
+}
 
 Todo.hook('create:after', ({ data }) => setReadOnlyProp(data))
 
@@ -31,7 +33,7 @@ Todo.hook('update:document', ({ document }) => consola.log(`Todo mongodb documen
 const log = oaHandler((ev: H3Event) => {
   consola.log('log::', ev.node.req.method)
 }, (doc: { summary: string } | null) => {
-  if (!doc) { return }
+  if (!doc) return
   doc.summary = `${doc.summary || ''} (and log method)`
 })
 const log2 = (ev: H3Event) => consola.log('log::', ev.node.req.url)

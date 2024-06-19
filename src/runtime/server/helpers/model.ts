@@ -22,9 +22,9 @@ addFormats(ajv)
 
 type HookResult = Promise<void> | void
 type HookArgData = { data: Schema }
-type HookArgDoc = { document?: WithId<Document>|null }
+type HookArgDoc = { document?: WithId<Document> | null }
 type HookArgEv = { event?: H3Event }
-type HookArgIds = { id: string|ObjectId|undefined, _id: ObjectId }
+type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 export interface ModelNuxtOaHooks<T extends keyof OaModels> {
   'collection:ready': ({ collection }: { collection: Collection<OaModels[T]> }) => HookResult
   'model:cleanJSON': (d: HookArgData) => HookResult
@@ -45,7 +45,7 @@ export interface ModelNuxtOaHooks<T extends keyof OaModels> {
   'delete:done': (d: HookArgData & HookArgEv & { deletedCount: number }) => HookResult
 }
 
-export function cleanSchema (schema: Schema): Schema {
+export function cleanSchema(schema: Schema): Schema {
   schema.type = 'object' //  type must be object
   delete schema.encryptedProperties
   delete schema.trackedProperties
@@ -58,7 +58,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
   name: T
   collection: Collection<OaModels[T]>
   encryptedProps: string[]
-  cipherKey: Buffer|undefined
+  cipherKey: Buffer | undefined
   trackedProps: (keyof OaModels[T])[]
   timestamps: { createdAt?: boolean, updatedAt?: boolean }
   userstamps: { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
@@ -66,7 +66,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
   validator: ValidateFunction
   getAllCleaner: (el: Partial<OaModels[T]>) => Partial<OaModels[T]>
 
-  constructor (name: T) {
+  constructor(name: T) {
     super()
     if (!schemasByName[name]) {
       throw new Error(`Can not found schema "${name}"`)
@@ -122,7 +122,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * Validate data against the model schema
    * @param d data
    */
-  validate (d: Schema) {
+  validate(d: Schema) {
     this.rmPropsWithAttr(d, 'readOnly')
     const valid = this.validator(d)
     if (!valid) {
@@ -136,11 +136,11 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param d data
    * @param attr the attribute that triggers the deletion
    */
-  private rmPropsWithAttr (d: Schema, attr: string) {
-    const stack: { el: Schema, schema: Schema, key?: string|number, parent?: Schema}[] = [{ el: d, schema: this.schema }]
+  private rmPropsWithAttr(d: Schema, attr: string) {
+    const stack: { el: Schema, schema: Schema, key?: string | number, parent?: Schema }[] = [{ el: d, schema: this.schema }]
     while (stack.length) {
       const { el, schema, key, parent } = stack.pop() || {}
-      if (!el || !schema) { continue }
+      if (!el || !schema) continue
       if (schema[attr]) {
         if (parent && key) {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -168,8 +168,8 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * Encrypt object props
    * @param d json
    */
-  encrypt (d: Schema) {
-    if (!this.cipherKey) { return }
+  encrypt(d: Schema) {
+    if (!this.cipherKey) return
     let _iv = d._iv
     if (!_iv) {
       d._iv = _iv = randomBytes(cipherIvSize).toString('base64')
@@ -188,7 +188,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    *  - decrypt props if needed
    * @param d representation of a model instance
    */
-  cleanJSON (d: any) {
+  cleanJSON(d: any) {
     const _iv = d._iv
     const data = { ...d, id: d._id }
     delete data._id
@@ -216,7 +216,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * Get all instances of the model
    * @param event incoming request
    */
-  async getAll (event?: H3Event) {
+  async getAll(event?: H3Event) {
     await this.callHook('getAll:before', { event })
     return (await this.collection.find({}).toArray()).map(this.getAllCleaner)
   }
@@ -228,10 +228,10 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param event incoming request
    * @returns document
    */
-  private async callHookDocument (action: 'update'|'archive'|'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaModels[T]>|null> {
-    let document: WithId<OaModels[T]>|null = null
+  private async callHookDocument(action: 'update' | 'archive' | 'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaModels[T]> | null> {
+    let document: WithId<OaModels[T]> | null = null
     await this.callHookWith(async (hooks: HookCallback[]) => {
-      if (!hooks.length) { return }
+      if (!hooks.length) return
       document = await this.collection.findOne({ _id } as any)
       const proms = hooks.map(caller => caller({ document, event }))
       return Promise.all(proms)
@@ -246,17 +246,17 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async create (d: OptionalUnlessRequiredId<OaModels[T]>, userId?: string|ObjectId, readOnlyData?: Partial<OaModels[T] & Schema>|null, event?: H3Event) {
+  async create(d: OptionalUnlessRequiredId<OaModels[T]>, userId?: string | ObjectId, readOnlyData?: Partial<OaModels[T] & Schema> | null, event?: H3Event) {
     await this.callHook('create:before', { data: d, event })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
     const at = new Date()
     const by = userId ? useObjectId(userId) : null
-    if (this.timestamps.createdAt) { data.createdAt = at }
-    if (this.timestamps.updatedAt) { data.updatedAt = at }
-    if (this.userstamps.createdBy && by) { data.createdBy = by }
-    if (this.userstamps.updatedBy && by) { data.updatedBy = by }
+    if (this.timestamps.createdAt) data.createdAt = at
+    if (this.timestamps.updatedAt) data.updatedAt = at
+    if (this.userstamps.createdBy && by) data.createdBy = by
+    if (this.userstamps.updatedBy && by) data.updatedBy = by
 
     await this.callHook('create:after', { data, event })
 
@@ -276,7 +276,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async update (id: string|ObjectId|undefined, d: Partial<OaModels[T] & Schema>, userId?: string|ObjectId, readOnlyData?: Partial<OaModels[T] & Schema>|null, event?: H3Event) {
+  async update(id: string | ObjectId | undefined, d: Partial<OaModels[T] & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaModels[T] & Schema> | null, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
@@ -284,8 +284,8 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
-    if (this.timestamps.updatedAt) { data.updatedAt = new Date() }
-    if (this.userstamps.updatedBy && userId) { data.updatedBy = useObjectId(userId) }
+    if (this.timestamps.updatedAt) data.updatedAt = new Date()
+    if (this.userstamps.updatedBy && userId) data.updatedBy = useObjectId(userId)
 
     const instance = (this.trackedProps.length || this.cipherKey)
       ? document ?? await this.collection.findOne({ _id } as any)
@@ -319,13 +319,13 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param userId user id
    * @param event incoming request
    */
-  async archive (id: string|ObjectId|undefined, archive = true, userId?: string|ObjectId, event?: H3Event) {
+  async archive(id: string | ObjectId | undefined, archive = true, userId?: string | ObjectId, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id, event })
     await this.callHookDocument('archive', _id, event)
 
     const data: Schema = { deletedAt: archive ? new Date() : undefined }
-    if (this.userstamps.deletedBy) { data.deletedBy = archive ? useObjectId(userId) : undefined }
+    if (this.userstamps.deletedBy) data.deletedBy = archive ? useObjectId(userId) : undefined
     await this.callHook('archive:after', { id, _id, data, event })
 
     const { value } = await this.collection
@@ -344,7 +344,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param id instance id
    * @param event incoming request
    */
-  async delete (id: string|ObjectId|undefined, event?: H3Event) {
+  async delete(id: string | ObjectId | undefined, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('delete:before', { id, _id, event })
     await this.callHookDocument('delete', _id, event)
@@ -355,14 +355,14 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     return { deletedCount }
   }
 
-  private async cursorFindEncrypted (filter: Filter<OaModels[T]>, multiple: boolean) {
+  private async cursorFindEncrypted(filter: Filter<OaModels[T]>, multiple: boolean) {
     const r: OaModels[T][] = []
     if (this.cipherKey) {
       const cursor = this.collection.find()
       const keys = Object.keys(filter)
       for await (const doc of cursor) {
         const iv = doc._iv
-        if (!iv) { continue } // not encrypted
+        if (!iv) continue // not encrypted
         let same = true
         for (let i = 0; i < keys.length && same; i++) {
           const key = keys[i]
@@ -371,7 +371,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
         }
         if (same) {
           r.push(doc)
-          if (!multiple) { return r }
+          if (!multiple) return r
         }
       }
     }
@@ -379,12 +379,12 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
   }
 
   /** Selects encrypted documents and returns the selected documents */
-  async findEncrypted (filter: Filter<OaModels[T]>): Promise<OaModels[T][]> {
+  async findEncrypted(filter: Filter<OaModels[T]>): Promise<OaModels[T][]> {
     return await this.cursorFindEncrypted(filter, true)
   }
 
   /** Selects encrypted document and returns the selected document */
-  async findOneEncrypted (filter: Filter<OaModels[T]>): Promise<OaModels[T]|null> {
+  async findOneEncrypted(filter: Filter<OaModels[T]>): Promise<OaModels[T] | null> {
     return (await this.cursorFindEncrypted(filter, false))[0] ?? null
   }
 }
@@ -392,7 +392,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
 export type ModelInstance = typeof Model
 
 const modelsCache: Record<string, any> = {}
-export function useOaModel<T extends keyof OaModels & string> (name: T): Model<T> {
+export function useOaModel<T extends keyof OaModels & string>(name: T): Model<T> {
   if (!modelsCache[name]) {
     modelsCache[name] = new Model(name)
   }
@@ -406,7 +406,7 @@ const addKeywords = (keywords: KeywordDefinition[]) => {
   }
 }
 
-export function useOaModelAjv () {
+export function useOaModelAjv() {
   return {
     instance: ajv,
     addKeywords
