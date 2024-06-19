@@ -1,3 +1,11 @@
+## [1.11.4](https://github.com/Morgbn/nuxt-oa/compare/v1.11.3...v1.11.4) (2024-06-19)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: rm .js ext ([272e458](https://github.com/Morgbn/nuxt-oa/commit/272e4583320478aee08f7163d9656eb8e85a819c))
+* :adhesive_bandage: useOaConfig merge runtimeConfig ([caec6c4](https://github.com/Morgbn/nuxt-oa/commit/caec6c4610fb99c8c1dec213c0d6a44f9af2ffc1))
+
 ## [1.11.3](https://github.com/Morgbn/nuxt-oa/compare/v1.11.2...v1.11.3) (2024-06-19)
 
 
