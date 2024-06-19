@@ -1,9 +1,9 @@
 import { createError, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
-import type { OaModels } from '../../types'
 import type Model from './model'
 import { oaHandler } from './router'
+import type { OaModelName } from '~/.nuxt/oa/nitro.js'
 
 const instance200 = (name: string) => ({
   description: `Updated ${name.toLowerCase()}.`,
@@ -31,7 +31,7 @@ export function useUserId(event: H3Event): string | ObjectId {
   return event.context.user.id
 }
 
-export const useGetAll = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
+export const useGetAll = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -60,7 +60,7 @@ export const useGetAll = <T extends keyof OaModels & string>(model: Model<T>, ap
   })
 }
 
-export const useCreate = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
+export const useCreate = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -87,7 +87,7 @@ export const useCreate = <T extends keyof OaModels & string>(model: Model<T>, ap
   })
 }
 
-export const useUpdate = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
+export const useUpdate = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -115,7 +115,7 @@ export const useUpdate = <T extends keyof OaModels & string>(model: Model<T>, ap
   })
 }
 
-export const useArchive = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
+export const useArchive = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -146,7 +146,7 @@ export const useArchive = <T extends keyof OaModels & string>(model: Model<T>, a
   })
 }
 
-export const useDelete = <T extends keyof OaModels & string>(model: Model<T>, apiDoc = {}) => {
+export const useDelete = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
   const { name } = model
   const lowerName = name.toLowerCase()
 

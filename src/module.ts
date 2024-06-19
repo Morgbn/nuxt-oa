@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs'
-import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate, addTypeTemplate, updateTemplates } from '@nuxt/kit'
+import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addTemplate, addTypeTemplate, updateTemplates } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import chalk from 'chalk'
 import { defu } from 'defu'
@@ -11,7 +11,6 @@ const logger = useLogger('nuxt-oa')
 const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
   // Get schemas & defs
   const schemasByName: Record<string, Schema> = {}
-  const schemasFolderPathByName: Record<string, string> = {}
   const defsById: Record<string, DefsSchema> = {}
   for (const layer of nuxt.options._layers) {
     const { oa } = layer.config
@@ -41,12 +40,11 @@ const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
         }
       } else if (!schemasByName[name]) { // schema file, earlier = higher priority
         schemasByName[name] = schema
-        schemasFolderPathByName[name] = schemasFolderPath
       }
     }
   }
   const defsSchemas = Object.values(defsById)
-  return { schemasByName, defsSchemas, schemasFolderPathByName, defsById }
+  return { schemasByName, defsSchemas, defsById }
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -65,17 +63,11 @@ export default defineNuxtModule<ModuleOptions>({
     dbUrl: ''
   },
   async setup(options, nuxt) {
-    const { schemasByName, defsSchemas, schemasFolderPathByName, defsById } = getSchemas(options, nuxt)
-
-    nuxt.options.oa = defu(options, {
-      stringifiedSchemasByName: JSON.stringify(schemasByName),
-      stringifiedDefsSchemas: JSON.stringify(defsSchemas)
-    })
+    const { schemasByName, defsSchemas, defsById } = getSchemas(options, nuxt)
 
     // Set up runtime configuration
-    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
-      ...nuxt.options.oa
-    })
+    nuxt.options.oa = { ...options }
+    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, nuxt.options.oa)
 
     // Transpile runtime
     const { resolve } = createResolver(import.meta.url)
@@ -121,31 +113,97 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    // Provide get[ModelName]OaSchema for each schema
+    // Provide oa[ModelName]Schema for each schema
+    const clientSchemaByName: Record<string, Schema> = {}
     for (const modelName in schemasByName) {
-      addPluginTemplate({
-        filename: `get${modelName}OaSchema.ts`,
+      const schema = schemasByName[modelName]
+      schema.type = 'object'
+      delete schema.encryptedProperties
+      delete schema.trackedProperties
+      delete schema.timestamps
+      delete schema.userstamps
+      // remove writeOnly props
+      if (!schema.writeOnly) {
+        const stack: { parent: Schema, key: string, el: Schema }[] = []
+        const addToStack = (parent: Schema) => Object.entries(parent).forEach(([key, el]) =>
+          (el && typeof el === 'object') ? stack.push({ key, parent, el }) : 0)
+        addToStack(schema)
+        while (stack.length) {
+          const { parent, key, el } = stack.pop()!
+          if (el.writeOnly) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete parent[key]
+          } else {
+            addToStack(el)
+          }
+        }
+      }
+      const t = addTemplate({
+        filename: `oa/schemas/${modelName}.ts`,
         write: true,
-        src: resolve('runtime/plugins/oaSchema.ejs'),
-        options: { schemasFolderPath: schemasFolderPathByName[modelName], modelName }
+        getContents: () => `export default ${JSON.stringify(schema, null, 2)} as const`
       })
+      addImports([{ name: 'default', as: `oa${modelName}Schema`, from: t.dst }])
+      addPlugin(addTemplate({
+        filename: `oa/plugins/${modelName}.ts`,
+        write: true,
+        getContents: () => [
+          `import { defineNuxtPlugin } from '#imports'`,
+          `import oa${modelName}Schema from '${t.dst}'`,
+          `export default defineNuxtPlugin((nuxtApp) => ({ provide: { oa${modelName}Schema } }))\n`,
+          'declare module "#app" {',
+          `  interface NuxtApp { oa${modelName}Schema: typeof oa${modelName}Schema }`,
+          '}',
+          'declare module "vue" {',
+          `  interface ComponentCustomProperties { oa${modelName}Schema: typeof oa${modelName}Schema }`,
+          '}'
+        ].join('\n')
+      }).dst)
+      clientSchemaByName[modelName] = schema
     }
-    // Provide getOaDefsSchema
-    addPlugin(addTemplate({
-      filename: 'getOaDefsSchema.ts',
+    // Provide useOaSchema
+    const templateSchema = addTemplate({
+      filename: 'oa/useOaSchema.ts',
       write: true,
-      getContents: () => `import { defineNuxtPlugin } from '#imports'\nconst byId = ${JSON.stringify(defsById)}\nexport type OaDefSchemaKey = keyof typeof byId\nexport default defineNuxtPlugin(() => ({ provide: { getOaDefsSchema: (id: OaDefSchemaKey) => byId[id] } }))`
-    }).dst)
+      getContents: () => [
+        'import { useNuxtApp } from "#app"',
+        'import type { OaClientSchemas } from "nuxt-oa"',
+        '\nexport const useOaSchema = <K extends keyof OaClientSchemas>(modelName: K) => {',
+        '  const key = `$oa${modelName}Schema`',
+        '  return useNuxtApp()[key] as OaClientSchemas[K]',
+        '}'
+      ].join('\n')
+    })
+    addImports([{ name: 'useOaSchema', as: 'useOaSchema', from: templateSchema.dst }])
+    // Provide useOaDefsSchema
+    const templateDefs = addTemplate({
+      filename: 'oa/useOaDefsSchema.ts',
+      write: true,
+      getContents: () => [
+        `const byId = ${JSON.stringify(defsById)} as const`,
+        `export type OaDefSchemaKey = keyof typeof byId`,
+        `export const useOaDefsSchema = (id: OaDefSchemaKey) => byId[id]`
+      ].join('\n')
+    })
+    addImports([{ name: 'useOaDefsSchema', as: 'useOaDefsSchema', from: templateDefs.dst }])
+    // Provide schemas for nitro
+    const templateNitro = addTemplate({
+      filename: 'oa/nitro.ts',
+      write: true,
+      getContents: () => [
+        `export const oaSchemasByName = ${JSON.stringify(schemasByName)}`,
+        `export const oaDefsSchemas = ${JSON.stringify(defsSchemas)}`,
+        `export type OaModelName = keyof typeof oaSchemasByName`,
+        `export const useOaServerSchema = () => ({ schemasByName: oaSchemasByName, defsSchemas: oaDefsSchemas })`
+      ].join('\n')
+    })
+    nuxt.options.nitro.imports.presets.push({
+      from: templateNitro.dst,
+      imports: ['oaSchemasByName', 'oaDefsSchemas', 'useOaServerSchema', 'OaModelName']
+    })
 
     // Add j2u (auto form generator)
     addPlugin(resolve('runtime/plugins/j2u'))
-    addImports([
-      'useOaSchema', 'useOaDefsSchema'
-    ].map(key => ({
-      name: key,
-      as: key,
-      from: resolve('runtime/composables')
-    })))
 
     // Add types
     let n = -1
@@ -154,9 +212,9 @@ export default defineNuxtModule<ModuleOptions>({
       getContents: () => {
         if (++n) { // on schema update
           const { schemasByName, defsSchemas } = getSchemas(options, nuxt)
-          return genTypes(schemasByName, defsSchemas)
+          return genTypes(schemasByName, defsSchemas, clientSchemaByName)
         }
-        return genTypes(schemasByName, defsSchemas) // first-time
+        return genTypes(schemasByName, defsSchemas, clientSchemaByName) // first-time
       }
     })
     // On update
@@ -173,9 +231,6 @@ declare module 'nuxt/schema' {
     oa: ModuleOptions
   }
   interface RuntimeConfig {
-    oa: ModuleOptions & {
-      readonly stringifiedSchemasByName: string
-      readonly stringifiedDefsSchemas: string
-    }
+    oa: ModuleOptions
   }
 }

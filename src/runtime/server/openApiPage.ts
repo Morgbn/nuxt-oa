@@ -1,24 +1,23 @@
 import { defineEventHandler, setHeader } from 'h3'
-import type { DefsSchema, Schema } from '../types'
+import type { Schema } from '../types'
 import { cleanSchema } from './helpers/model'
 import { paths, components } from './helpers/router'
-
 import { useRuntimeConfig } from '#imports'
+import { oaDefsSchemas, oaSchemasByName } from '~/.nuxt/oa/nitro.js'
 
-const { openApiGeneralInfo, openApiServers, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
+const { openApiGeneralInfo, openApiServers } = useRuntimeConfig().oa
 
-const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
-const hasMultiDefsId = defsSchemas.length > 1
-const defsComponents = defsSchemas.reduce<Record<string, Schema>>((o, schema) => {
+const hasMultiDefsId = oaDefsSchemas.length > 1
+const defsComponents = oaDefsSchemas.reduce<Record<string, Schema>>((o, schema) => {
   for (const key in schema.definitions) {
-    o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key]
+    o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key as keyof typeof schema.definitions]
   }
   return o
 }, {})
 
 const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/g
 const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/components/schemas/$3"'
-const schemas = Object.entries(JSON.parse(stringifiedSchemasByName))
+const schemas = Object.entries(oaSchemasByName)
   .reduce((o: Record<string, Schema>, [key, schema]) => {
     schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
     o[key] = cleanSchema(schema as Schema)

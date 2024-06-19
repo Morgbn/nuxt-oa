@@ -6,27 +6,34 @@ import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import type { Collection, Document, Filter, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
 import { Hookable, type HookCallback } from 'hookable'
 import { createError, type H3Event } from 'h3'
-import type { Schema, OaModels, DefsSchema } from '../../types'
+import type { OaModels } from 'nuxt-oa'
+import type { Schema } from '../../types'
 import { useCol, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
-
 import { useRuntimeConfig } from '#imports'
+import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro.js'
 
-const { cipherAlgo, cipherKey, cipherIvSize, stringifiedSchemasByName, stringifiedDefsSchemas } = useRuntimeConfig().oa
-const schemasByName = JSON.parse(stringifiedSchemasByName) as Record<keyof OaModels, Schema>
-const defsSchemas = JSON.parse(stringifiedDefsSchemas) as DefsSchema[]
+const { cipherAlgo, cipherKey, cipherIvSize } = useRuntimeConfig().oa
+const { schemasByName, defsSchemas } = useOaServerSchema()
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
+
+type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
+type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
+
+type OaDbItem<T extends OaModelName> = OaModels[T] & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: unknown[], _iv?: string }
+type OaSchema<T extends OaModelName> = (typeof schemasByName)[T] & { encryptedProperties?: string[], trackedProperties?: (keyof OaDbItem<T>)[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean }
+type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
 
 type HookResult = Promise<void> | void
 type HookArgData = { data: Schema }
 type HookArgDoc = { document?: WithId<Document> | null }
 type HookArgEv = { event?: H3Event }
 type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
-export interface ModelNuxtOaHooks<T extends keyof OaModels> {
-  'collection:ready': ({ collection }: { collection: Collection<OaModels[T]> }) => HookResult
+export interface ModelNuxtOaHooks<T extends OaModelName> {
+  'collection:ready': ({ collection }: { collection: Collection<OaDbItem<T>> }) => HookResult
   'model:cleanJSON': (d: HookArgData) => HookResult
   'getAll:before': (d: HookArgEv) => HookResult
   'create:before': (d: HookArgData & HookArgEv) => HookResult
@@ -54,17 +61,17 @@ export function cleanSchema(schema: Schema): Schema {
   return schema
 }
 
-export default class Model<T extends keyof OaModels & string> extends Hookable<ModelNuxtOaHooks<T>> {
+export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHooks<T>> {
   name: T
-  collection: Collection<OaModels[T]>
+  collection: Collection<OaDbItem<T>>
   encryptedProps: string[]
   cipherKey: Buffer | undefined
-  trackedProps: (keyof OaModels[T])[]
-  timestamps: { createdAt?: boolean, updatedAt?: boolean }
-  userstamps: { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
+  trackedProps: OaTrackedProps<T>[]
+  timestamps: Timestamps
+  userstamps: Userstamps
   schema: Schema
   validator: ValidateFunction
-  getAllCleaner: (el: Partial<OaModels[T]>) => Partial<OaModels[T]>
+  getAllCleaner: (el: Partial<OaDbItem<T>>) => Partial<OaDbItem<T>>
 
   constructor(name: T) {
     super()
@@ -72,10 +79,10 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
-    this.collection = useCol<OaModels[T]>(pluralize(name))
+    this.collection = useCol<OaDbItem<T>>(pluralize(name))
     this.callHook('collection:ready', { collection: this.collection })
 
-    const schema: Schema = schemasByName[name]
+    const schema = schemasByName[name] as OaSchema<T>
     this.encryptedProps = []
     if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
       this.encryptedProps = schema.encryptedProperties
@@ -87,15 +94,17 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
         throw new Error('[@nuxtjs/oa] cipherKey must be a 32-bit key')
       }
     }
-    const props = new Set<string>() // props to put in updates
+    const props = new Set<OaTrackedProps<T>>() // props to put in updates
     if (Array.isArray(schema.trackedProperties)) {
-      schema.trackedProperties.forEach(props.add, props)
+      (schema.trackedProperties as OaTrackedProps<T>[]).forEach(props.add, props)
       props.add('updatedAt')
     } else if (schema.trackedProperties === true) { // track all
       for (const key in schema.properties) {
-        if (!['id', 'createdAt', 'createdBy'].includes(key) && !schema.properties[key].readOnly) { // except readOnly properties & id & createdAt/By
-          props.add(key)
-        }
+        // except readOnly properties & id & createdAt/By
+        if (['id', 'createdAt', 'createdBy'].includes(key)) continue
+        const k = key as keyof typeof schema.properties
+        if ('readOnly' in schema.properties[k] && schema.properties[k].readOnly) continue
+        props.add(k)
       }
       props.add('updatedAt')
     }
@@ -228,8 +237,8 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param event incoming request
    * @returns document
    */
-  private async callHookDocument(action: 'update' | 'archive' | 'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaModels[T]> | null> {
-    let document: WithId<OaModels[T]> | null = null
+  private async callHookDocument(action: 'update' | 'archive' | 'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaDbItem<T>> | null> {
+    let document: WithId<OaDbItem<T>> | null = null
     await this.callHookWith(async (hooks: HookCallback[]) => {
       if (!hooks.length) return
       document = await this.collection.findOne({ _id } as any)
@@ -246,7 +255,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async create(d: OptionalUnlessRequiredId<OaModels[T]>, userId?: string | ObjectId, readOnlyData?: Partial<OaModels[T] & Schema> | null, event?: H3Event) {
+  async create(d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
     await this.callHook('create:before', { data: d, event })
 
     this.validate(d)
@@ -276,7 +285,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async update(id: string | ObjectId | undefined, d: Partial<OaModels[T] & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaModels[T] & Schema> | null, event?: H3Event) {
+  async update(id: string | ObjectId | undefined, d: Partial<OaDbItem<T> & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
@@ -355,11 +364,11 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
     return { deletedCount }
   }
 
-  private async cursorFindEncrypted(filter: Filter<OaModels[T]>, multiple: boolean) {
-    const r: OaModels[T][] = []
+  private async cursorFindEncrypted(filter: Filter<OaDbItem<T>>, multiple: boolean) {
+    const r: OaDbItem<T>[] = []
     if (this.cipherKey) {
       const cursor = this.collection.find()
-      const keys = Object.keys(filter)
+      const keys = Object.keys(filter) as (keyof OaDbItem<T>)[]
       for await (const doc of cursor) {
         const iv = doc._iv
         if (!iv) continue // not encrypted
@@ -379,12 +388,12 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
   }
 
   /** Selects encrypted documents and returns the selected documents */
-  async findEncrypted(filter: Filter<OaModels[T]>): Promise<OaModels[T][]> {
+  async findEncrypted(filter: Filter<OaDbItem<T>>): Promise<OaDbItem<T>[]> {
     return await this.cursorFindEncrypted(filter, true)
   }
 
   /** Selects encrypted document and returns the selected document */
-  async findOneEncrypted(filter: Filter<OaModels[T]>): Promise<OaModels[T] | null> {
+  async findOneEncrypted(filter: Filter<OaDbItem<T>>): Promise<OaDbItem<T> | null> {
     return (await this.cursorFindEncrypted(filter, false))[0] ?? null
   }
 }
@@ -392,7 +401,7 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
 export type ModelInstance = typeof Model
 
 const modelsCache: Record<string, any> = {}
-export function useOaModel<T extends keyof OaModels & string>(name: T): Model<T> {
+export function useOaModel<T extends OaModelName>(name: T): Model<T> {
   if (!modelsCache[name]) {
     modelsCache[name] = new Model(name)
   }

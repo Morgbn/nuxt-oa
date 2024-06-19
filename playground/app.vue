@@ -91,14 +91,12 @@
 import { ref } from 'vue'
 import { JsonSchema } from 'j2u'
 import { keywords } from '~/ajv-keywords'
-import { useFetch, useOaSchema, useOaDefsSchema, useNuxtApp } from '#imports'
+import { useFetch, useOaSchema, useOaDefsSchema, oaTodoSchema, useNuxtApp } from '#imports'
 
-const schema = useNuxtApp().$getTodoOaSchema
-const schema2 = useOaSchema('Todo')
+const schema = useOaSchema('Todo')
+// OR: const schema = oaTodoSchema
+// OR: const schema = useNuxtApp().$oaTodoSchema
 const defsSchema = useOaDefsSchema('defs')
-
-// const s = schema.properties.cost.range
-// const s2 = schema2.properties
 
 const msg = ref<string | null>(null)
 const msgColor = ref('green')
