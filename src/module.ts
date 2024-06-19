@@ -60,16 +60,21 @@ export default defineNuxtModule<ModuleOptions>({
     cipherAlgo: 'aes-256-gcm',
     cipherIvSize: 16,
     openApiPath: '/api-doc/openapi.json',
-    swaggerPath: '/api-doc'
+    swaggerPath: '/api-doc',
+    cipherKey: '',
+    dbUrl: ''
   },
   async setup(options, nuxt) {
     const { schemasByName, defsSchemas, schemasFolderPathByName, defsById } = getSchemas(options, nuxt)
 
-    // Set up runtime configuration
-    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
-      ...options,
+    nuxt.options.oa = defu(options, {
       stringifiedSchemasByName: JSON.stringify(schemasByName),
       stringifiedDefsSchemas: JSON.stringify(defsSchemas)
+    })
+
+    // Set up runtime configuration
+    nuxt.options.runtimeConfig.oa = defu(nuxt.options.runtimeConfig.oa, {
+      ...nuxt.options.oa
     })
 
     // Transpile runtime
@@ -164,9 +169,12 @@ export default defineNuxtModule<ModuleOptions>({
 })
 
 declare module 'nuxt/schema' {
+  interface NuxtOptions {
+    oa: ModuleOptions
+  }
   interface RuntimeConfig {
     oa: ModuleOptions & {
-      readonly stringifiedSchemasByName: string,
+      readonly stringifiedSchemasByName: string
       readonly stringifiedDefsSchemas: string
     }
   }

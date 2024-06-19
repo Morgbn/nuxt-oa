@@ -35,17 +35,18 @@ export interface OpenApiServer {
 
 export interface ModuleOptions {
   schemasFolder: string
-  dbUrl?: string
+  dbUrl: string
   dbOptions?: MongoClientOptions
   cipherAlgo: CipherGCMTypes
-  cipherKey?: string
-  cipherIvSize?: number
-  openApiPath?: string
+  cipherIvSize: number
+  cipherKey: string
+  openApiPath: string
   openApiGeneralInfo?: OpenApiGeneralInfo
   openApiServers?: OpenApiServer[]
-  swaggerPath?: string
+  swaggerPath: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Schema = { [key: string]: any }
 
 export type DefsSchema = { $id: string, definitions: Record<string, Schema> }
