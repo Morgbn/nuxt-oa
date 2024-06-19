@@ -1,3 +1,15 @@
+## [1.11.3](https://github.com/Morgbn/nuxt-oa/compare/v1.11.2...v1.11.3) (2024-06-19)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: import in playground api ([b4bad7b](https://github.com/Morgbn/nuxt-oa/commit/b4bad7b55be0a4371e3b2502352eafd5c761fb9c))
+* :art: better config with useOaConfig() ([54dbeed](https://github.com/Morgbn/nuxt-oa/commit/54dbeed331aad3e5a60aa35ec8d95ff785f86d01))
+* :art: better types/imports ([29c5606](https://github.com/Morgbn/nuxt-oa/commit/29c560639f03f503a5671a2ff11d71355e0414e4))
+* :art: support recursive additionalProperties ([e6e4e38](https://github.com/Morgbn/nuxt-oa/commit/e6e4e3807f371e698d1e5d49ea842e0bc1fafa8f))
+* :label: ModuleOptions ([d08a179](https://github.com/Morgbn/nuxt-oa/commit/d08a17998ca72f9a10df62eff259595f8e8d615b))
+* :lock: erase sensitive buffer ([ae71093](https://github.com/Morgbn/nuxt-oa/commit/ae7109394f9a1e470238607e464e4a5cfa20a195))
+
 ## [1.11.2](https://github.com/Morgbn/nuxt-oa/compare/v1.11.1...v1.11.2) (2024-06-04)
 
 
