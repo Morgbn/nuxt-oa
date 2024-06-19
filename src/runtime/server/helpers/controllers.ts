@@ -2,7 +2,7 @@ import { createError, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
 import type { OaModels } from '../../types'
-import Model from './model'
+import type Model from './model'
 import { oaHandler } from './router'
 
 const instance200 = (name: string) => ({

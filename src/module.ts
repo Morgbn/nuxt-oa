@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs'
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs'
 import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImports, addPlugin, addPluginTemplate, addTemplate, addTypeTemplate, updateTemplates } from '@nuxt/kit'
 import type { Nuxt } from '@nuxt/schema'
 import chalk from 'chalk'
@@ -14,12 +14,11 @@ const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
   const schemasFolderPathByName: Record<string, string> = {}
   const defsById: Record<string, DefsSchema> = {}
   for (const layer of nuxt.options._layers) {
-    // @ts-ignore
     const { oa } = layer.config
     if (oa) {
-      if (!options.dbUrl) { options.dbUrl = oa.dbUrl } // earlier = higher priority
-      if (!options.openApiPath) { options.openApiPath = oa.openApiPath }
-      if (!options.swaggerPath) { options.swaggerPath = oa.swaggerPath }
+      if (!options.dbUrl && oa.dbUrl) { options.dbUrl = oa.dbUrl } // earlier = higher priority
+      if (!options.openApiPath && oa.openApiPath) { options.openApiPath = oa.openApiPath }
+      if (!options.swaggerPath && oa.swaggerPath) { options.swaggerPath = oa.swaggerPath }
     }
     const layerResolver = createResolver(layer.cwd)
     const schemasFolderPath = layerResolver.resolve(oa?.schemasFolder ?? options.schemasFolder)

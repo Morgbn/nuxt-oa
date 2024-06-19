@@ -16,7 +16,7 @@ const defsComponents = defsSchemas.reduce<Record<string, Schema>>((o, schema) =>
   return o
 }, {})
 
-const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/gm
+const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/g
 const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/components/schemas/$3"'
 const schemas = Object.entries(JSON.parse(stringifiedSchemasByName))
   .reduce((o: Record<string, Schema>, [key, schema]) => {

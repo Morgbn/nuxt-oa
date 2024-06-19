@@ -93,7 +93,7 @@ function genType (schema: Schema, interfaceName: string, stack: Stack) {
   }
   if (schema.enum) {
     str += schema.enum
-      .map((v: any) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
+      .map((v: unknown) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
       .join(' | ')
   } else {
     str += schema.type ?? 'any'

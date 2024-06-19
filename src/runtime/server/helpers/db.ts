@@ -12,8 +12,10 @@ client.connect()
   .then(() => {
     consola.success('Connected Successfully to MongoDB')
   })
-  .catch((err: any) => {
-    consola.error(`DB Connection Error: ${err.message}`)
+  .catch((err) => {
+    if (err instanceof Error && err.message) {
+      consola.error(`DB Connection Error: ${err.message}`)
+    }
     process.exit(1)
   })
 const dbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'

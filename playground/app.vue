@@ -60,10 +60,15 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { keywords } from '~/ajv-keywords'
-import { useFetch, useOaSchema, useOaDefsSchema } from '#imports'
+import { useFetch, useOaSchema, useOaDefsSchema, useNuxtApp } from '#imports'
+import { JsonSchema } from 'j2u'
 
-const schema = useOaSchema('Todo')
+const schema = useNuxtApp().$getTodoOaSchema
+const schema2 = useOaSchema('Todo')
 const defsSchema = useOaDefsSchema('defs')
+
+// const s = schema.properties.cost.range
+// const s2 = schema2.properties
 
 const msg = ref<string|null>(null)
 const msgColor = ref('green')
@@ -71,7 +76,8 @@ const { data: todos, pending } = await useFetch('/api/todos', { lazy: true })
 
 const randStr = (base = 36) => Math.random().toString(base).slice(3, 9)
 
-const msgWrapper = (func: Function) => async (d: Record<string, any>) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const msgWrapper = <T extends object>(func: (arg: T) => Promise<any>) => async (d: T) => {
   msg.value = null
   msgColor.value = 'green'
   const { data, error } = await func(d)
@@ -85,32 +91,27 @@ const msgWrapper = (func: Function) => async (d: Record<string, any>) => {
 }
 
 const editedTodo = ref<OaTodo|null>(null)
-const dialog = ref<any>(null)
+const dialog = ref<HTMLDialogElement|null>(null)
 const openTodo = (todo: OaTodo) => {
-  dialog.value.showModal()
+  dialog.value?.showModal()
   editedTodo.value = JSON.parse(JSON.stringify(todo))
 }
 const closeTodo = () => {
-  dialog.value.close()
+  dialog.value?.close()
   editedTodo.value = null
 }
 
-const form = ref<any>(null)
+const form = ref<InstanceType<typeof JsonSchema>|null>(null)
 const updateTodo = msgWrapper(async () => {
-  if (!await form.value.validate()) { return {} }
+  if (!await form.value?.validate()) { return {} }
   if (!editedTodo.value) { return }
-  const id = editedTodo.value.id
-  let path = '/api/todos/'
-  let method: 'POST'|'PUT' = 'POST'
-  if (id === 'new') {
-    delete editedTodo.value.id
-  } else {
-    path += id
-    method = 'PUT'
-  }
-  const { data, error } = await useFetch(path, { method, body: editedTodo.value })
+  const isNew = editedTodo.value.id === 'new'
+  const { id, ...body } = editedTodo.value
+  const { data, error } = await useFetch(`/api/todos/${isNew ? '' : id}`, {
+    method: isNew ? 'POST' : 'PUT', body
+  })
   if (!error.value) {
-    if (id === 'new') {
+    if (isNew) {
       todos.value.push(data.value)
     } else {
       todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value)

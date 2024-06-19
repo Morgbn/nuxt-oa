@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createCipheriv, createDecipheriv } from 'node:crypto'
 import type { CipherGCMTypes } from 'node:crypto'
 

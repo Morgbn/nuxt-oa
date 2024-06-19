@@ -3,12 +3,13 @@ import type { CreateRouterOptions, EventHandler } from 'h3'
 
 const methods = ['get', 'head', 'patch', 'post', 'put', 'delete', 'connect', 'options', 'trace'] as const
 type Method = typeof methods[number]
+type DocFn = <T extends object>(doc?: T) => T
 
 export interface OaFunction extends EventHandler {
-  __apiDoc?: object|Function
+  __apiDoc?: object|DocFn
 }
 
-export function oaHandler (func: OaFunction, schema: object|Function = {}): OaFunction {
+export function oaHandler (func: OaFunction, schema: object|DocFn = {}): OaFunction {
   func.__apiDoc = schema
   return func
 }
@@ -43,12 +44,12 @@ export function createOaRouter (basePath: string, opts: CreateRouterOptions = {}
   for (const method of methods) {
     oaRouter[method] = (path: string, ...stack: AtLeastOne<OaFunction>) => { // accept middleware per route
       const doc = upsertPath(`${basePath}${path}`.replace(pathParamRe, oaPathParam))
-      const docFuncs: Function[] = []
+      const docFuncs: DocFn[] = []
       for (const func of stack) {
         const apiDDoc = func.__apiDoc
         if (apiDDoc) {
           if (typeof apiDDoc === 'function') {
-            docFuncs.push(apiDDoc)
+            docFuncs.push(apiDDoc as DocFn)
           } else {
             doc[method] = { ...doc[method], ...apiDDoc }
           }

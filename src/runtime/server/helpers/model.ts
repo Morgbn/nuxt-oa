@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { randomBytes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
@@ -142,8 +143,10 @@ export default class Model<T extends keyof OaModels & string> extends Hookable<M
       if (!el || !schema) { continue }
       if (schema[attr]) {
         if (parent && key) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete parent[key]
         } else { // root
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           Object.keys(d).forEach(key => delete d[key]) // rm all data
           return
         }

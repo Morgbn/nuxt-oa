@@ -1,4 +1,4 @@
-const rules: [RegExp, String][] = [
+const rules: [RegExp, string][] = [
   [/(m)an$/gi, '$1en'],
   [/(pe)rson$/gi, '$1ople'],
   [/(child)$/gi, '$1ren'],
@@ -21,10 +21,10 @@ const rules: [RegExp, String][] = [
   [/^goose$/i, 'geese'],
   [/s$/gi, 's'],
   [/([^a-z])$/, '$1'],
-  [/$/gi, 's']
+  [/$/g, 's']
 ]
 
-const uncountables: String[] = [
+const uncountables: string[] = [
   'advice',
   'energy',
   'excretion',
