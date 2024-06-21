@@ -120,7 +120,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Provide oa[ModelName]Schema for each schema
     const clientSchemaByName: Record<string, Schema> = {}
     for (const modelName in schemasByName) {
-      const schema = schemasByName[modelName]
+      const schema = JSON.parse(JSON.stringify(schemasByName[modelName]))
       schema.type = 'object'
       delete schema.encryptedProperties
       delete schema.trackedProperties
