@@ -1,3 +1,10 @@
+## [1.11.5](https://github.com/Morgbn/nuxt-oa/compare/v1.11.4...v1.11.5) (2024-06-21)
+
+
+### Bug Fixes
+
+* :ambulance: client schema != server schema ([983b994](https://github.com/Morgbn/nuxt-oa/commit/983b994eae848cf5c9c53ba064dd52531fb5b230))
+
 ## [1.11.4](https://github.com/Morgbn/nuxt-oa/compare/v1.11.3...v1.11.4) (2024-06-19)
 
 
