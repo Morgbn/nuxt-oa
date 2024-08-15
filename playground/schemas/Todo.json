@@ -31,8 +31,8 @@
     }
   },
   "required": ["text"],
-  "encryptedProperties": ["text"],
-  "trackedProperties": ["text", "updatedBy"],
+  "encryptedProperties": ["text", "cost"],
+  "trackedProperties": ["text", "updatedBy", "cost"],
   "timestamps": true,
   "userstamps": true
 }
