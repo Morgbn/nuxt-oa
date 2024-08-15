@@ -1,3 +1,10 @@
+## [1.11.6](https://github.com/Morgbn/nuxt-oa/compare/v1.11.5...v1.11.6) (2024-08-15)
+
+
+### Bug Fixes
+
+* :art: support number/boolean encryption ([0d9a7c5](https://github.com/Morgbn/nuxt-oa/commit/0d9a7c54690bbc859f76e8c34b9eb3b5b4cbdb11))
+
 ## [1.11.5](https://github.com/Morgbn/nuxt-oa/compare/v1.11.4...v1.11.5) (2024-06-21)
 
 
