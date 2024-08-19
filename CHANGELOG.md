@@ -1,3 +1,10 @@
+## [1.11.7](https://github.com/Morgbn/nuxt-oa/compare/v1.11.6...v1.11.7) (2024-08-19)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: undefined tracked prop was converted to null ([fe200e6](https://github.com/Morgbn/nuxt-oa/commit/fe200e676f21fb205edb8d7a5497bda3e1e7999c))
+
 ## [1.11.6](https://github.com/Morgbn/nuxt-oa/compare/v1.11.5...v1.11.6) (2024-08-15)
 
 
