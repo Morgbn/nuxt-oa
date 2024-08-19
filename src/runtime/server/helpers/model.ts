@@ -71,7 +71,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   userstamps: Userstamps
   schema: Schema
   validator: ValidateFunction
-  getAllCleaner: (el: Partial<OaDbItem<T>>) => Partial<OaDbItem<T>>
+  getAllCleaner: (el: Partial<WithId<OaDbItem<T>>>) => Partial<OaDbItem<T>>
 
   constructor(name: T) {
     super()
@@ -300,7 +300,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       ? document ?? await this.collection.findOne({ _id } as any)
       : null
     if (this.trackedProps.length && instance) {
-      const update = this.trackedProps.reduce((o, key) => ({ ...o, [key]: instance[key] }), {})
+      const update: Record<string, unknown> = {}
+      for (const key of this.trackedProps) {
+        // @ts-expect-error OaTrackedProps<T> # WithId<OaDbItem<T>>
+        if (instance[key] !== undefined) update[key] = instance[key]
+      }
       data.updates = [...(instance.updates || []), update]
     }
 
@@ -365,7 +369,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   }
 
   private async cursorFindEncrypted(filter: Filter<OaDbItem<T>>, multiple: boolean) {
-    const r: OaDbItem<T>[] = []
+    const r: WithId<OaDbItem<T>>[] = []
     if (this.cipherKey) {
       const cursor = this.collection.find()
       const keys = Object.keys(filter) as (keyof OaDbItem<T>)[]
@@ -374,8 +378,8 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         if (!iv) continue // not encrypted
         let same = true
         for (let i = 0; i < keys.length && same; i++) {
-          const key = keys[i]
-          const decrypted = decrypt(doc[key], iv, this.cipherKey, cipherAlgo)
+          const key = keys[i] as keyof typeof doc
+          const decrypted = decrypt(doc[key] as any, iv, this.cipherKey, cipherAlgo)
           same = JSON.stringify(decrypted) === JSON.stringify(filter[key])
         }
         if (same) {
@@ -388,12 +392,12 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   }
 
   /** Selects encrypted documents and returns the selected documents */
-  async findEncrypted(filter: Filter<OaDbItem<T>>): Promise<OaDbItem<T>[]> {
+  async findEncrypted(filter: Filter<OaDbItem<T>>) {
     return await this.cursorFindEncrypted(filter, true)
   }
 
   /** Selects encrypted document and returns the selected document */
-  async findOneEncrypted(filter: Filter<OaDbItem<T>>): Promise<OaDbItem<T> | null> {
+  async findOneEncrypted(filter: Filter<OaDbItem<T>>): Promise<WithId<OaDbItem<T>> | null> {
     return (await this.cursorFindEncrypted(filter, false))[0] ?? null
   }
 }
