@@ -17,15 +17,16 @@ client.connect()
     }
     process.exit(1)
   })
-const dbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
-const db = client.db(dbName)
+
+export const defaultDbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
+const db = client.db(defaultDbName)
 
 export function useMongoClient() {
   return client
 }
 
 export function useDb(name?: string): Db {
-  return client.db(name ?? dbName)
+  return client.db(name ?? defaultDbName)
 }
 
 export function useCol<TSchema extends Document = Document>(name: string, aDb?: Db): Collection<TSchema> {
