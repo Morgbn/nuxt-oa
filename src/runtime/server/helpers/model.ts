@@ -4,11 +4,11 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import type { Collection, Document, Filter, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
-import { Hookable, type HookCallback } from 'hookable'
+import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { OaModels } from 'nuxt-oa'
 import type { Schema } from '../../types'
-import { useCol, useObjectId } from './db'
+import { defaultDbName, useCol, useDb, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
@@ -33,7 +33,8 @@ type HookArgDoc = { document?: WithId<Document> | null }
 type HookArgEv = { event?: H3Event }
 type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 export interface ModelNuxtOaHooks<T extends OaModelName> {
-  'collection:ready': ({ collection }: { collection: Collection<OaDbItem<T>> }) => HookResult
+  'collection:ready': (d: { collection: Collection<OaDbItem<T>>, dbName: string, defaultDbName: string }) => HookResult
+  'collection:before': (d: { setDb: (dbName: string) => void, defaultDbName: string }) => HookResult
   'model:cleanJSON': (d: HookArgData) => HookResult
   'getAll:before': (d: HookArgEv) => HookResult
   'create:before': (d: HookArgData & HookArgEv) => HookResult
@@ -63,7 +64,6 @@ export function cleanSchema(schema: Schema): Schema {
 
 export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHooks<T>> {
   name: T
-  collection: Collection<OaDbItem<T>>
   encryptedProps: string[]
   cipherKey: Buffer | undefined
   trackedProps: OaTrackedProps<T>[]
@@ -72,6 +72,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   schema: Schema
   validator: ValidateFunction
   getAllCleaner: (el: Partial<WithId<OaDbItem<T>>>) => Partial<OaDbItem<T>>
+  private collectionName: string
+  private dbName: string
+  private allDbNames: Set<string>
+  private onBeforeGetCollection: ModelNuxtOaHooks<T>['collection:before']
+  private skipHookBeforeGetCol = false
 
   constructor(name: T) {
     super()
@@ -79,8 +84,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       throw new Error(`Can not found schema "${name}"`)
     }
     this.name = name
-    this.collection = useCol<OaDbItem<T>>(pluralize(name))
-    this.callHook('collection:ready', { collection: this.collection })
+    this.collectionName = pluralize(name)
+    this.dbName = defaultDbName
+    this.allDbNames = new Set([defaultDbName])
+    this.onBeforeGetCollection = () => {}
+    this.callHook('collection:ready', { collection: this.collection, dbName: defaultDbName, defaultDbName })
 
     const schema = schemasByName[name] as OaSchema<T>
     this.encryptedProps = []
@@ -125,6 +133,33 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     this.validator = ajv.compile(this.schema)
 
     this.getAllCleaner = (el: object) => this.cleanJSON(el)
+  }
+
+  get collection() {
+    if (!this.skipHookBeforeGetCol) // check if dbName was not already set in this.db('…')
+      // call onBeforeGetCollection and not this.callHook('collection:before',…) to have instantly set dbName
+      this.onBeforeGetCollection({ setDb: (name: string) => this.db(name), defaultDbName })
+    this.skipHookBeforeGetCol = false
+    return useCol<OaDbItem<T>>(this.collectionName, useDb(this.dbName))
+  }
+
+  /** Change database on the fly */
+  db(dbName: string) {
+    this.dbName = dbName
+    this.skipHookBeforeGetCol = true
+    if (!this.allDbNames.has(dbName)) {
+      this.allDbNames.add(dbName) // call it before to prevent infinite loop
+      this.callHook('collection:ready', { collection: this.collection, dbName, defaultDbName })
+      this.skipHookBeforeGetCol = true // removed when call "this.collection"
+    } else this.allDbNames.add(dbName)
+    return this
+  }
+
+  override hook<NameT extends HookKeys<ModelNuxtOaHooks<T>>>(name: NameT, function_: ModelNuxtOaHooks<T>[NameT] extends HookCallback ? ModelNuxtOaHooks<T>[NameT] : never, options?: { allowDeprecated?: boolean }): () => void {
+    if (name === 'collection:before') {
+      this.onBeforeGetCollection = function_
+    }
+    return super.hook(name, function_, options)
   }
 
   /**
