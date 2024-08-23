@@ -1,3 +1,11 @@
+# [1.12.0](https://github.com/Morgbn/nuxt-oa/compare/v1.11.7...v1.12.0) (2024-08-23)
+
+
+### Features
+
+* :art: export defaultDbName ([daa8d6f](https://github.com/Morgbn/nuxt-oa/commit/daa8d6f2ca94f346cb73678b217c5d44c7c70c49))
+* :sparkles: collection:before hook & Model.db() ([00dd90b](https://github.com/Morgbn/nuxt-oa/commit/00dd90b96f571b1bfefc73d8c2f598e9abde4f2d))
+
 ## [1.11.7](https://github.com/Morgbn/nuxt-oa/compare/v1.11.6...v1.11.7) (2024-08-19)
 
 
