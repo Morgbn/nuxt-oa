@@ -14,8 +14,9 @@ import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
 import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro'
 
-const { cipherAlgo, cipherKey, cipherIvSize } = useOaConfig()
+const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer } = useOaConfig()
 const { schemasByName, defsSchemas } = useOaServerSchema()
+const noDbClient = import.meta.prerender && !dbClientOnRenderer
 
 const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
 addFormats(ajv)
@@ -94,11 +95,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     this.encryptedProps = []
     if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
       this.encryptedProps = schema.encryptedProperties
-      if (!cipherKey) {
+      if (!noDbClient && !cipherKey) {
         throw new Error(`[@nuxtjs/oa] cipherKey is required to encrypt data (you have "encryptedProperties" in "${this.name}" schema but no cipherKey defined in the module options)`)
       }
       this.cipherKey = Buffer.from(cipherKey, 'base64')
-      if (this.cipherKey.length !== 32) {
+      if (!noDbClient && this.cipherKey.length !== 32) {
         throw new Error('[@nuxtjs/oa] cipherKey must be a 32-bit key')
       }
     }

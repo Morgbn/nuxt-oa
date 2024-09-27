@@ -4,9 +4,12 @@ import { consola } from 'consola'
 import type { Db, Collection, Document } from 'mongodb'
 import { useOaConfig } from './config'
 
-const { dbUrl, dbOptions } = useOaConfig()
+const { dbUrl, dbOptions, dbClientOnRenderer } = useOaConfig()
+const noDbClient = import.meta.prerender && !dbClientOnRenderer
 
-const client = new MongoClient(dbUrl ?? '', dbOptions)
+const client = noDbClient
+  ? { connect: () => Promise.resolve(), db: () => ({ collection: () => { consola.error('Collection not available in prerender mode') } }) as unknown as Db }
+  : new MongoClient(dbUrl ?? '', dbOptions)
 client.connect()
   .then(() => {
     consola.success('Connected Successfully to MongoDB')
@@ -18,7 +21,7 @@ client.connect()
     process.exit(1)
   })
 
-export const defaultDbName = new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
+export const defaultDbName = noDbClient ? 'test' : new URL(dbUrl ?? '').pathname.split('/').pop() ?? 'test'
 const db = client.db(defaultDbName)
 
 export function useMongoClient() {
@@ -26,7 +29,7 @@ export function useMongoClient() {
 }
 
 export function useDb(name?: string): Db {
-  return client.db(name ?? defaultDbName)
+  return client.db(name ?? defaultDbName)!
 }
 
 export function useCol<TSchema extends Document = Document>(name: string, aDb?: Db): Collection<TSchema> {

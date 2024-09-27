@@ -1,5 +1,5 @@
 import type { CipherGCMTypes } from 'node:crypto'
-import type { MongoClientOptions, ObjectId } from 'mongodb'
+import type { MongoClientOptions } from 'mongodb'
 
 // API General Info: https://swagger.io/docs/specification/api-general-info/
 export interface OpenApiGeneralInfo {
@@ -44,6 +44,7 @@ export interface ModuleOptions {
   openApiGeneralInfo?: OpenApiGeneralInfo
   openApiServers?: OpenApiServer[]
   swaggerPath: string
+  dbClientOnRenderer?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
