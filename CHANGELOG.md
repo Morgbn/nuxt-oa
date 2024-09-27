@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/Morgbn/nuxt-oa/compare/v1.12.0...v1.12.1) (2024-09-27)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: handle prerender mode ([11b8f11](https://github.com/Morgbn/nuxt-oa/commit/11b8f115a7a064e581bbb1e64a25c89900210901))
+
 # [1.12.0](https://github.com/Morgbn/nuxt-oa/compare/v1.11.7...v1.12.0) (2024-08-23)
 
 
