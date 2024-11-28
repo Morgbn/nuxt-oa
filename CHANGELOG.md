@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/Morgbn/nuxt-oa/compare/v1.12.1...v1.12.2) (2024-11-28)
+
+
+### Bug Fixes
+
+* :bug: schema cleaning in `typeGenerator` ([0971986](https://github.com/Morgbn/nuxt-oa/commit/097198689a0c4f859d50460772954580cbd4b681))
+
 ## [1.12.1](https://github.com/Morgbn/nuxt-oa/compare/v1.12.0...v1.12.1) (2024-09-27)
 
 
