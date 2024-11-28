@@ -19,7 +19,7 @@
     "dev": "nuxi dev playground",
     "lint": "eslint .",
     "dev:build": "nuxi build playground",
-    "prepack": "yarn build",
+    "prepack": "pnpm build",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground"
   },
   "dependencies": {
