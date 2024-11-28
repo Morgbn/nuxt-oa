@@ -112,7 +112,7 @@ export default defineNuxtModule<ModuleOptions>({
         nuxt.hook('listen', (_, listener) => {
           const viewerUrl = `${withoutTrailingSlash(listener.url)}${options.swaggerPath}`
           logger.log(`  ${chalk.yellowBright('➜ Swagger')}:  ${chalk.underline.cyan(withTrailingSlash(viewerUrl))} `
-          + `${chalk.gray(`${Object.keys(schemasByName).length} schema(s) found`)}\n`)
+            + `${chalk.gray(`${Object.keys(schemasByName).length} schema(s) found`)}\n`)
         })
       }
     }
