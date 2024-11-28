@@ -151,54 +151,59 @@ function genTypes(schema: Schema, interfaceName: string) {
   return types.join('\n')
 }
 
-function typeGenerator(schemasByName: Schema, defsSchemas: DefsSchema[] = [], clientSchemaByName: Record<string, Schema> = {}): string {
-  const allTypes = ['']
+/** Add id, replace timestamps / userstamps / trackedProperties… */
+function cleanSchema(schema: Schema, typeName: string) {
   const tStr = { type: 'string' }
-  const tDate = { format: 'date' }
+  const tDate = { type: 'string', format: 'date' }
+
+  schema.properties = { id: { type: 'string' }, ...schema.properties }
+  if (!schema.required) schema.required = []
+  schema.required.push('id')
+
+  if (schema.timestamps) {
+    const timestamps = schema.timestamps === true ? { createdAt: true, updatedAt: true, deletedAt: true } : (schema.timestamps || {})
+    schema.properties = { ...schema.properties, ...Object.keys(timestamps).reduce((o, k) => ({ ...o, [k]: tDate }), {} as Record<string, typeof tDate>) }
+    delete schema.timestamps
+  }
+
+  if (schema.userstamps) {
+    const userstamps = schema.userstamps === true ? { createdBy: true, updatedBy: true, deletedBy: true } : (schema.userstamps || {})
+    schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tStr }), {} as Record<string, typeof tStr>) }
+    delete schema.userstamps
+  }
+  const props = new Set<string>() // props to put in updates
+  if (Array.isArray(schema.trackedProperties)) {
+    schema.trackedProperties.forEach(props.add, props)
+    props.add('updatedAt')
+  } else if (schema.trackedProperties === true) { // track all
+    for (const key in schema.properties) {
+      if (!['id', 'createdAt', 'createdBy'].includes(key) && !schema.properties[key].readOnly) { // except readOnly properties & id & createdAt/By
+        props.add(key)
+      }
+    }
+    props.add('updatedAt')
+  }
+  const trackedProps = [...props].map(prop => `'${prop}'`).join(' | ')
+  if (trackedProps) {
+    schema.properties.updatedAt = tDate
+    schema.properties.updates = {
+      description: 'Keeps track of some updated properties',
+      type: `Pick<${typeName}, ${trackedProps}>[]`
+    }
+    delete schema.trackedProperties
+  }
+  delete schema.encryptedProperties
+
+  return schema
+}
+
+function typeGenerator(schemasByName: Record<string, Schema>, defsSchemas: DefsSchema[] = [], clientSchemaByName: Record<string, Schema> = {}): string {
+  const allTypes = ['']
   const modelNames = Object.keys(schemasByName)
 
   for (const modelName of modelNames) {
     const typeName = `Oa${modelName}`
-    const schema = schemasByName[modelName]
-
-    schema.properties = { id: { type: 'string' }, ...schema.properties }
-    if (!schema.required) schema.required = []
-    schema.required.push('id')
-
-    if (schema.timestamps) {
-      const timestamps = schema.timestamps === true ? { createdAt: true, updatedAt: true, deletedAt: true } : (schema.timestamps || {})
-      schema.properties = { ...schema.properties, ...Object.keys(timestamps).reduce((o, k) => ({ ...o, [k]: tDate }), {} as Record<string, typeof tDate>) }
-      delete schema.timestamps
-    }
-
-    if (schema.userstamps) {
-      const userstamps = schema.userstamps === true ? { createdBy: true, updatedBy: true, deletedBy: true } : (schema.userstamps || {})
-      schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tStr }), {} as Record<string, typeof tStr>) }
-      delete schema.userstamps
-    }
-    const props = new Set<string>() // props to put in updates
-    if (Array.isArray(schema.trackedProperties)) {
-      schema.trackedProperties.forEach(props.add, props)
-      props.add('updatedAt')
-    } else if (schema.trackedProperties === true) { // track all
-      for (const key in schema.properties) {
-        if (!['id', 'createdAt', 'createdBy'].includes(key) && !schema.properties[key].readOnly) { // except readOnly properties & id & createdAt/By
-          props.add(key)
-        }
-      }
-      props.add('updatedAt')
-    }
-    const trackedProps = [...props].map(prop => `'${prop}'`).join(' | ')
-    if (trackedProps) {
-      schema.properties.updatedAt = tDate
-      schema.properties.updates = {
-        description: 'Keeps track of some updated properties',
-        type: `Pick<${typeName}, ${trackedProps}>[]`
-      }
-      delete schema.trackedProperties
-    }
-    delete schema.encryptedProperties
-
+    const schema = cleanSchema(JSON.parse(JSON.stringify(schemasByName[modelName])), typeName)
     allTypes.push(genTypes(schema, typeName))
   }
 
@@ -228,7 +233,7 @@ function typeGenerator(schemasByName: Schema, defsSchemas: DefsSchema[] = [], cl
   ].join('\n')
 }
 
-export default function typeGeneratorCatchError(schemasByName: Schema, defsSchemas: DefsSchema[] = [], clientSchemaByName: Record<string, Schema> = {}): string {
+export default function typeGeneratorCatchError(schemasByName: Record<string, Schema>, defsSchemas: DefsSchema[] = [], clientSchemaByName: Record<string, Schema> = {}): string {
   try {
     return typeGenerator(schemasByName, defsSchemas, clientSchemaByName)
   } catch (error) {

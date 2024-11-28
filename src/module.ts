@@ -3,7 +3,7 @@ import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImpor
 import type { Nuxt } from '@nuxt/schema'
 import chalk from 'chalk'
 import { defu } from 'defu'
-import genTypes from './typeGenerator'
+import genTypes from './schema-helpers'
 import type { ModuleOptions, Schema, DefsSchema } from './runtime/types'
 
 const logger = useLogger('nuxt-oa')
