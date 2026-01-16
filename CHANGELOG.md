@@ -1,3 +1,15 @@
+# [1.13.0](https://github.com/Morgbn/nuxt-oa/compare/v1.12.3...v1.13.0) (2026-01-16)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: better playgound ([81c88d4](https://github.com/Morgbn/nuxt-oa/commit/81c88d4bf328ab64b62f204ec7a1ef67db020c57))
+
+
+### Features
+
+* :art: support folders in schemas folder ([b5b0c61](https://github.com/Morgbn/nuxt-oa/commit/b5b0c616d0499b3375645caf0b7753593aa82923))
+
 ## [1.12.3](https://github.com/Morgbn/nuxt-oa/compare/v1.12.2...v1.12.3) (2025-03-04)
 
 
