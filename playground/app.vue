@@ -88,10 +88,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { JsonSchema } from 'j2u'
 import { keywords } from '~/ajv-keywords'
-import { useFetch, useOaSchema, useOaDefsSchema, oaTodoSchema, useNuxtApp } from '#imports'
+import { useOaSchema, useOaDefsSchema, oaTodoSchema, useNuxtApp } from '#imports'
 
 const schema = useOaSchema('Todo')
 // OR: const schema = oaTodoSchema
@@ -100,21 +100,30 @@ const defsSchema = useOaDefsSchema('defs')
 
 const msg = ref<string | null>(null)
 const msgColor = ref('green')
-const { data: todos, pending } = await useFetch('/api/todos', { lazy: true })
+const todos = ref<OaTodo[]>([])
+const pending = ref(true)
+
+onMounted(async () => {
+  todos.value = await $fetch('/api/todos')
+  pending.value = false
+})
 
 const randStr = (base = 36) => Math.random().toString(base).slice(3, 9)
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const msgWrapper = <T extends object>(func: (arg: T) => Promise<any>) => async (d: T) => {
+const msgWrapper = <T extends object>(func: (arg: T) => Promise<unknown>, finallyFunc?: () => unknown) => async (d: T) => {
   msg.value = null
   msgColor.value = 'green'
-  const { data, error } = await func(d)
-  msg.value = data?.value || error?.value || ''
-  if (error?.value) {
+  try {
+    const data = await func(d)
+    msg.value = JSON.stringify(data, null, ' ') || ''
+  } catch (error) {
     msgColor.value = 'red'
-    if (error.value.data?.data) {
-      msg.value += '\n' + JSON.stringify(error.value.data.data, null, ' ')
+    msg.value = error instanceof Error ? error.message : String(error)
+    if (error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object' && 'data' in error.data) {
+      msg.value += '\n' + JSON.stringify(error.data.data, null, ' ')
     }
+  } finally {
+    finallyFunc?.()
   }
 }
 
@@ -135,42 +144,36 @@ const updateTodo = msgWrapper(async () => {
   if (!editedTodo.value) return
   const isNew = editedTodo.value.id === 'new'
   const { id, ...body } = editedTodo.value
-  const { data, error } = await useFetch(`/api/todos/${isNew ? '' : id}`, {
+  const data = await $fetch<OaTodo>(`/api/todos/${isNew ? '' : id}`, {
     method: isNew ? 'POST' : 'PUT', body
   })
-  if (!error.value) {
-    if (isNew) {
-      todos.value.push(data.value)
-    } else {
-      todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value)
-    }
-  }
-  closeTodo()
-  return { data, error }
-})
+  if (isNew) todos.value.push(data)
+  else todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data)
+  return data
+}, closeTodo)
 
 const archiveTodo = msgWrapper(async ({ id, deletedAt }: OaTodo) => {
-  const { data, error } = await useFetch('/api/todos/' + id + '/archive', { method: 'POST', body: { archive: !deletedAt } })
-  if (!error.value) todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data.value)
-  return { data, error }
+  const data = await $fetch<OaTodo>('/api/todos/' + id + '/archive', { method: 'POST', body: { archive: !deletedAt } })
+  todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1, data)
+  return data
 })
 
 const rmTodo = msgWrapper(async ({ id }: OaTodo) => {
-  const { data, error } = await useFetch('/api/todos/' + id, { method: 'DELETE' })
-  if (!error.value) todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1)
-  return { data, error }
+  const data = await $fetch('/api/todos/' + id, { method: 'DELETE' })
+  todos.value.splice(todos.value.findIndex((t: OaTodo) => t.id === id), 1)
+  return data
 })
 
 const testWithRandomId = msgWrapper(async () =>
-  await useFetch('/api/todos/63cf86ff1541f5505b' + randStr(16), { method: 'DELETE', body: { text: 'U-test' } })
+  await $fetch('/api/todos/63cf86ff1541f5505b' + randStr(16), { method: 'DELETE', body: { text: 'U-test' } })
 )
 
 const testWithBadData = msgWrapper(async () =>
-  await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { noInSchema: 'test', text: 'no' } })
+  await $fetch('/api/todos/' + todos.value[0]?.id, { method: 'PUT', body: { noInSchema: 'test', text: 'no' } })
 )
 
 const testWriteReadOnly = msgWrapper(async () =>
-  await useFetch('/api/todos/' + todos.value[0].id, { method: 'PUT', body: { text: todos.value[0].text, readOnlyProp: 'test' } })
+  await $fetch('/api/todos/' + todos.value[0]?.id, { method: 'PUT', body: { text: todos.value[0]?.text, readOnlyProp: 'test' } })
 )
 </script>
 
