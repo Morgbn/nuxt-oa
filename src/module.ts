@@ -23,23 +23,35 @@ const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
     const schemasFolderPath = layerResolver.resolve(oa?.schemasFolder ?? options.schemasFolder)
     if (!existsSync(schemasFolderPath)) continue
     if (!lstatSync(schemasFolderPath).isDirectory()) continue
-    const schemasResolver = createResolver(schemasFolderPath)
-    for (const file of readdirSync(schemasFolderPath)) { // Read schemas
-      const name = file.split('.').slice(0, -1).join('.')
-      const schema = JSON.parse(readFileSync(schemasResolver.resolve(file), 'utf-8'))
-      if (name === 'defs') { // definitions file
-        const { $id, definitions } = schema as DefsSchema
-        if (defsById[$id]) { // extends definitions
-          for (const key in definitions) {
-            if (!defsById[$id].definitions[key]) { // earlier = higher priority -> don't replace previous def
-              defsById[$id].definitions[key] = definitions[key]
-            }
-          }
-        } else {
-          defsById[$id] = schema
+
+    const stack = [[schemasFolderPath, '']]
+    while (stack.length) {
+      const [folder, prefix] = stack.shift()!
+      const resolver = createResolver(folder)
+      for (const file of readdirSync(folder)) { // Read schemas
+        const path = resolver.resolve(file)
+
+        if (lstatSync(path).isDirectory()) {
+          stack.push([path, file[0] === file[0].toLowerCase() ? prefix : `${prefix}${file}`]) // use folders whose first letter is lowercase as a logical grouping (without naming)
+          continue
         }
-      } else if (!schemasByName[name]) { // schema file, earlier = higher priority
-        schemasByName[name] = schema
+
+        const name = `${prefix}${file.split('.').slice(0, -1).join('.')}`
+        const schema = JSON.parse(readFileSync(path, 'utf-8'))
+        if (name === 'defs') { // definitions file
+          const { $id, definitions } = schema as DefsSchema
+          if (defsById[$id]) { // extends definitions
+            for (const key in definitions) {
+              if (!defsById[$id].definitions[key]) { // earlier = higher priority -> don't replace previous def
+                defsById[$id].definitions[key] = definitions[key]
+              }
+            }
+          } else {
+            defsById[$id] = schema
+          }
+        } else if (!schemasByName[name]) { // schema file, earlier = higher priority
+          schemasByName[name] = schema
+        }
       }
     }
   }

@@ -1,0 +1,9 @@
+
+{
+  "properties": {
+    "text": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}
