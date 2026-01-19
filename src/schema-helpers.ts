@@ -4,11 +4,15 @@ import type { Schema, DefsSchema } from './runtime/types'
 type Stack = [Schema, string][]
 
 const genericTypeHelpers = `
-type _AllKeys<T> = T extends unknown ? keyof T : never
-type _Id<T> = T extends infer U ? { [K in keyof U]: U[K] } : never
-type _ExclusiveUnion<T, K extends PropertyKey> =
-    T extends unknown ? _Id<T & Partial<Record<Exclude<K, keyof T>, never>>> : never
-type OneOf<T> = _ExclusiveUnion<T, _AllKeys<T>>`
+type _Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
+type _XOR<T, U> = T | U extends object
+  ? (_Without<T, U> & U) | (_Without<U, T> & T)
+  : T | U;
+type OneOf<T extends readonly any[]> = T extends readonly [infer First, ...infer Rest]
+  ? Rest extends readonly [any, ...any[]]
+    ? _XOR<First, OneOf<Rest>>
+    : First
+  : never;`
 
 const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
 const jsonKey = (str: string) => str.match(/\W/g) ? `'${str}'` : str
@@ -96,7 +100,7 @@ function genType(schema: Schema, interfaceName: string, stack: Stack) {
       .map((v: unknown) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
       .join(' | ')
   } else {
-    str += schema.type ?? 'any'
+    str += schema.type ?? 'unknown'
   }
   if (schema.anyOf) { // validates the value against any (one or more) of the sub-schemas
     const anyOf = []
@@ -105,8 +109,7 @@ function genType(schema: Schema, interfaceName: string, stack: Stack) {
       stack.push([schema.anyOf[i], propertyInterfaceName])
       anyOf.push(propertyInterfaceName)
     }
-    str += anyOf.join(' | ')
-    str += '// AnyOf'
+    str += `& (${anyOf.join(' | ')}) // AnyOf`
   }
   if (schema.oneOf) { // validates the value against exactly one of the sub-schemas
     const oneOf = []
@@ -115,7 +118,7 @@ function genType(schema: Schema, interfaceName: string, stack: Stack) {
       stack.push([schema.oneOf[i], propertyInterfaceName])
       oneOf.push(propertyInterfaceName)
     }
-    str += ` & OneOf<${oneOf.join('|')}>`
+    str += `& OneOf<[${oneOf.join(', ')}]>`
   }
   if (schema.allOf) { // validates the value against all the sub-schemas
     const allOf = []
@@ -124,13 +127,12 @@ function genType(schema: Schema, interfaceName: string, stack: Stack) {
       stack.push([schema.allOf[i], propertyInterfaceName])
       allOf.push(propertyInterfaceName)
     }
-    str += allOf.join(' & ')
-    str += '// AllOf'
+    str += `& ${allOf.join(' & ')} // AllOf`
   }
   if (schema.not) {
     const propertyInterfaceName = `${interfaceName}Not`
     stack.push([schema.not, propertyInterfaceName])
-    str += ` & Exclude<any, ${propertyInterfaceName}>`
+    str += `& Exclude<any, ${propertyInterfaceName}>`
   }
   return str
 }
