@@ -1,3 +1,11 @@
+## [1.13.1](https://github.com/Morgbn/nuxt-oa/compare/v1.13.0...v1.13.1) (2026-01-19)
+
+
+### Bug Fixes
+
+* :art: support property path in `encryptedProperties` ([4a6c4f5](https://github.com/Morgbn/nuxt-oa/commit/4a6c4f50232243ddc3d27cc222eb741b0066da4f))
+* :label: improve OneOf type ([6872786](https://github.com/Morgbn/nuxt-oa/commit/68727863b4fefcc79efae47e800fa4870b9ff376))
+
 # [1.13.0](https://github.com/Morgbn/nuxt-oa/compare/v1.12.3...v1.13.0) (2026-01-16)
 
 
