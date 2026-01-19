@@ -12,6 +12,7 @@ import { defaultDbName, useCol, useDb, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
+import * as _ from './_'
 import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro'
 
 const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer } = useOaConfig()
@@ -219,10 +220,10 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     if (!_iv) {
       d._iv = _iv = randomBytes(cipherIvSize).toString('base64')
     }
-    for (const key of this.encryptedProps) {
-      if (d[key] !== undefined && d[key] !== null) {
-        d[key] = encrypt(d[key], _iv, this.cipherKey, cipherAlgo)
-      }
+    for (const path of this.encryptedProps) {
+      const val = _.get(d, path)
+      if (val !== undefined && val !== null)
+        _.set(d, path, encrypt(val, _iv, this.cipherKey, cipherAlgo))
     }
   }
 
@@ -241,13 +242,13 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     this.rmPropsWithAttr(data, 'writeOnly') // remove properties to omit
 
     if (this.cipherKey) { // need to decrypt some properties
-      for (const key of this.encryptedProps) {
-        data[key] = decrypt(data[key], _iv, this.cipherKey, cipherAlgo)
+      for (const path of this.encryptedProps) {
+        _.set(data, path, decrypt(_.get(data, path), _iv, this.cipherKey, cipherAlgo))
       }
       if (this.trackedProps.length && Array.isArray(data.updates)) { // tracked props remain crypted
         for (const update of data.updates) {
-          for (const key of this.encryptedProps) {
-            update[key] = decrypt(update[key], _iv, this.cipherKey, cipherAlgo)
+          for (const path of this.encryptedProps) {
+            _.set(update, path, decrypt(_.get(update, path), _iv, this.cipherKey, cipherAlgo))
           }
         }
       }
@@ -408,15 +409,15 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     const r: WithId<OaDbItem<T>>[] = []
     if (this.cipherKey) {
       const cursor = this.collection.find()
-      const keys = Object.keys(filter) as (keyof OaDbItem<T>)[]
+      const paths = Object.keys(filter)
       for await (const doc of cursor) {
         const iv = doc._iv
         if (!iv) continue // not encrypted
         let same = true
-        for (let i = 0; i < keys.length && same; i++) {
-          const key = keys[i] as keyof typeof doc
-          const decrypted = decrypt(doc[key] as any, iv, this.cipherKey, cipherAlgo)
-          same = JSON.stringify(decrypted) === JSON.stringify(filter[key])
+        for (let i = 0; i < paths.length && same; i++) {
+          const path = paths[i]
+          const decrypted = decrypt(_.get(doc, path), iv, this.cipherKey, cipherAlgo)
+          same = JSON.stringify(decrypted) === JSON.stringify(filter[path])
         }
         if (same) {
           r.push(doc)
