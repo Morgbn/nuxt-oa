@@ -315,18 +315,44 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   }
 
   /**
+   * Upsert a model instance
+   *
+   * Attempts to find an existing document matching the given filter.
+   * - If a document is found, it is updated.
+   * - If no document is found, a new one is created.
+   *
+   * @param filter MongoDB filter used to locate an existing document.
+   * @param d User-provided data used to create or update the document.
+   * @param userId user id
+   * @param readOnlyData data from application logic
+   * @param event incoming request
+   *  @remarks
+   * This method does not use MongoDB's native `upsert` option.
+   * Instead, it performs a read-then-write flow in order to:
+   * - apply custom validation and authorization logic
+   * - reuse existing `create` and `update` hooks
+   */
+  async upsert(filter: Filter<OaDbItem<T>>, d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+    const document = await this.collection.findOne<WithId<OaDbItem<T>>>(filter)
+    if (document) return this.update(document._id, d, userId, readOnlyData, event, document)
+    return this.create(d, userId, readOnlyData, event)
+  }
+
+  /**
    * Update a model instance
    * @param id instance id
    * @param d body (data from user)
    * @param userId user id
    * @param readOnlyData data from application logic
    * @param event incoming request
+   * @param existingDoc document already found
    */
-  async update(id: string | ObjectId | undefined, d: Partial<OaDbItem<T> & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+  async update(id: string | ObjectId | undefined, d: Partial<OaDbItem<T> & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event, existingDoc?: WithId<OaDbItem<T>>) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
-    const document = await this.callHookDocument('update', _id, event)
+    if (existingDoc) await this.callHook('update:document', { document: existingDoc, event })
+    const document = existingDoc ?? await this.callHookDocument('update', _id, event)
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
