@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/Morgbn/nuxt-oa/compare/v1.13.1...v1.14.0) (2026-01-19)
+
+
+### Features
+
+* :sparkles: add an upsert method ([7580141](https://github.com/Morgbn/nuxt-oa/commit/75801413e456d5aa479fea7d64f88dffadd5dba8))
+
 ## [1.13.1](https://github.com/Morgbn/nuxt-oa/compare/v1.13.0...v1.13.1) (2026-01-19)
 
 
