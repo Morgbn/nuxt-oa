@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/Morgbn/nuxt-oa/compare/v1.14.0...v1.14.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* :label: better server side types ([6f24ba6](https://github.com/Morgbn/nuxt-oa/commit/6f24ba66e21aa6d1a92bd2215321fd9dce758a98))
+
 # [1.14.0](https://github.com/Morgbn/nuxt-oa/compare/v1.13.1...v1.14.0) (2026-01-19)
 
 
