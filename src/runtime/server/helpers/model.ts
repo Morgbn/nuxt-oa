@@ -13,7 +13,7 @@ import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
 import * as _ from './_'
-import { useOaServerSchema, type OaModelName } from '~/.nuxt/oa/nitro'
+import { useOaServerSchema, type OaModelName, type OaModels } from '~/.nuxt/oa/nitro'
 
 const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer } = useOaConfig()
 const { schemasByName, defsSchemas } = useOaServerSchema()
@@ -25,7 +25,7 @@ addFormats(ajv)
 type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
 type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
 
-type OaDbItem<T extends OaModelName> = OaModels[T] & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: unknown[], _iv?: string }
+type OaDbItem<T extends OaModelName> = Omit<OaModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: unknown[], _iv?: string }
 type OaSchema<T extends OaModelName> = (typeof schemasByName)[T] & { encryptedProperties?: string[], trackedProperties?: (keyof OaDbItem<T>)[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean }
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
 
