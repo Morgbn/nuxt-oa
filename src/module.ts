@@ -209,11 +209,7 @@ export default defineNuxtModule<ModuleOptions>({
       getContents: () => [
         `export const oaSchemasByName = ${JSON.stringify(schemasByName)}`,
         `export const oaDefsSchemas = ${JSON.stringify(defsSchemas)}`,
-        `export type OaModelName = keyof typeof oaSchemasByName`,
-        `export const useOaServerSchema = () => ({ schemasByName: oaSchemasByName, defsSchemas: oaDefsSchemas })`,
-        `export interface OaModels {`,
-        ...Object.keys(schemasByName).map(name => `  ${name}: Oa${name}`),
-        '}'
+        `export const useOaServerSchema = () => ({ schemasByName: oaSchemasByName, defsSchemas: oaDefsSchemas })`
       ].join('\n')
     })
     nuxt.options.nitro.imports.presets.push({
@@ -227,7 +223,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Add types
     let n = -1
     addTypeTemplate({
-      filename: 'shared/nuxt-oa.d.ts',
+      filename: 'types/nuxt-oa.d.ts',
       getContents: () => {
         if (++n) { // on schema update
           const { schemasByName, defsSchemas } = getSchemas(options, nuxt)
@@ -235,7 +231,7 @@ export default defineNuxtModule<ModuleOptions>({
         }
         return genTypes(schemasByName, defsSchemas, clientSchemaByName) // first-time
       }
-    })
+    }, { nuxt: true, nitro: true })
     // On update
     nuxt.hook('builder:watch', (event, path) => {
       if (path.includes(`${options.schemasFolder}/`)) {

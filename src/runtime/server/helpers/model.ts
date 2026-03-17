@@ -6,14 +6,14 @@ import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import type { Collection, Document, Filter, ObjectId, OptionalUnlessRequiredId, WithId } from 'mongodb'
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
-import type { OaModels } from 'nuxt-oa'
+import type { OaModels, OaModelName } from 'nuxt-oa'
 import type { Schema } from '../../types'
 import { defaultDbName, useCol, useDb, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
 import * as _ from './_'
-import { useOaServerSchema, type OaModelName, type OaModels } from '~/.nuxt/oa/nitro'
+import { useOaServerSchema } from '~/.nuxt/oa/nitro'
 
 const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer } = useOaConfig()
 const { schemasByName, defsSchemas } = useOaServerSchema()

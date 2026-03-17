@@ -231,6 +231,7 @@ function typeGenerator(schemasByName: Record<string, Schema>, defsSchemas: DefsS
     '  interface OaClientSchemas {',
     ...modelNames.flatMap(name => `    ${name}: Oa${name}ClientSchema`),
     '  }',
+    `  type OaModelName = keyof OaModels`,
     '}'
   ].join('\n')
 }
