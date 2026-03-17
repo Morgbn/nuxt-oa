@@ -26,7 +26,8 @@
     "lint": "eslint .",
     "dev:build": "nuxi build playground",
     "prepack": "pnpm build",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground"
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
+    "clean": "npx nuxt cleanup && npx nuxt cleanup --cwd=playground"
   },
   "dependencies": {
     "@nuxt/kit": "^4.4.2",
