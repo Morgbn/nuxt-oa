@@ -28,6 +28,7 @@ type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolea
 type OaDbItem<T extends OaModelName> = Omit<OaModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: unknown[], _iv?: string }
 type OaSchema<T extends OaModelName> = (typeof schemasByName)[T] & { encryptedProperties?: string[], trackedProperties?: (keyof OaDbItem<T>)[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean }
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
+type OaSchema<T extends OaModelName> = { properties: Schema, encryptedProperties?: string[], trackedProperties?: OaTrackedProps<T>[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean }
 
 type HookResult = Promise<void> | void
 type HookArgData = { data: Schema }
@@ -104,24 +105,29 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         throw new Error('[@nuxtjs/oa] cipherKey must be a 32-bit key')
       }
     }
-    const props = new Set<OaTrackedProps<T>>() // props to put in updates
+
+    this.userstamps = typeof schema.userstamps === 'object'
+      ? schema.userstamps
+      : (!schema.userstamps ? {} : { createdBy: true, updatedBy: true, deletedBy: true })
+    this.timestamps = typeof schema.timestamps === 'object'
+      ? schema.timestamps
+      : (!schema.timestamps ? {} : { createdAt: true, updatedAt: true })
+
+    const props = new Set<string>() // props to put in updates
+    props.add('updatedAt') // always add updatedAt
+    if (this.userstamps.updatedBy) props.add('updatedBy') // add updatedBy if configured
     if (Array.isArray(schema.trackedProperties)) {
-      (schema.trackedProperties as OaTrackedProps<T>[]).forEach(props.add, props)
-      props.add('updatedAt')
+      schema.trackedProperties.forEach(props.add, props)
     } else if (schema.trackedProperties === true) { // track all
       for (const key in schema.properties) {
         // except readOnly properties & id & createdAt/By
         if (['id', 'createdAt', 'createdBy'].includes(key)) continue
-        const k = key as keyof typeof schema.properties
-        if ('readOnly' in schema.properties[k] && schema.properties[k].readOnly) continue
-        props.add(k)
+        if ('readOnly' in schema.properties[key] && schema.properties[key].readOnly) continue
+        props.add(key)
       }
       props.add('updatedAt')
     }
-    this.trackedProps = [...props]
-    this.timestamps = typeof schema.timestamps === 'object'
-      ? schema.timestamps
-      : (!schema.timestamps ? {} : { createdAt: true, updatedAt: true })
+    this.trackedProps = [...props] as OaTrackedProps<T>[]
     if (this.trackedProps.length) { // if tracking props
       this.timestamps.updatedAt = true // need updatedAt
     }

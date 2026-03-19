@@ -32,7 +32,7 @@
   },
   "required": ["text"],
   "encryptedProperties": ["text", "cost"],
-  "trackedProperties": ["text", "updatedBy", "cost"],
+  "trackedProperties": ["text", "cost"],
   "timestamps": true,
   "userstamps": true
 }
