@@ -1,3 +1,10 @@
+## [1.14.3](https://github.com/Morgbn/nuxt-oa/compare/v1.14.2...v1.14.3) (2026-03-19)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: auto track updatedBy if userstamps.updatedBy is set ([5849e50](https://github.com/Morgbn/nuxt-oa/commit/5849e50e0afc7c5eff7e32911914f8e70263215d))
+
 ## [1.14.2](https://github.com/Morgbn/nuxt-oa/compare/v1.14.1...v1.14.2) (2026-03-17)
 
 
