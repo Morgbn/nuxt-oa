@@ -1,6 +1,10 @@
 # Dependencies
 node_modules
 
+.pnpm-store
+.claude/
+.devcontainer/
+
 # Logs
 *.log*
 
@@ -54,3 +58,6 @@ coverage
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# graphify
+graphify-out
