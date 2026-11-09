@@ -1,0 +1,9 @@
+{
+  "$extends": true,
+  "properties": {
+    "extra": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

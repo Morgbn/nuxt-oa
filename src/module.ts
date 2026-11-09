@@ -51,10 +51,13 @@ const getSchemas = (options: ModuleOptions, nuxt: Nuxt) => {
           }
         } else if (!schemasByName[name]) { // schema file, earlier = higher priority
           schemasByName[name] = schema
+        } else if (schemasByName[name].$extends === true) { // merge onto the lower-priority layer's schema
+          schemasByName[name] = defu(schemasByName[name], schema)
         }
       }
     }
   }
+  for (const schema of Object.values(schemasByName)) delete schema.$extends // internal directive, fully resolved by now
   const defsSchemas = Object.values(defsById)
   return { schemasByName, defsSchemas, defsById }
 }
