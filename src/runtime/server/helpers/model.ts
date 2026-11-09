@@ -222,7 +222,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       const { el, schema, key, parent } = stack.pop() || {}
       if (!el || !schema) continue
       if (schema[attr]) {
-        if (parent && key) {
+        if (parent && key !== undefined) {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete parent[key]
         } else { // root
@@ -235,6 +235,12 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       if (schema.type === 'object') {
         for (const key in schema.properties) {
           stack.push({ el: el[key], schema: schema.properties[key], key, parent: el })
+        }
+        if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+          for (const key in el) {
+            if (schema.properties && key in schema.properties) continue
+            stack.push({ el: el[key], schema: schema.additionalProperties, key, parent: el })
+          }
         }
       } else if (schema.type === 'array') {
         for (let i = 0; i < el.length; i++) {
