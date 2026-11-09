@@ -1,3 +1,16 @@
+# [2.2.0](https://github.com/Morgbn/nuxt-oa/compare/v2.1.0...v2.2.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* :adhesive_bandage: rm useless initial assignments ([0324d67](https://github.com/Morgbn/nuxt-oa/commit/0324d675abadb37dfaa0a844dd0c8cf70d7798a6))
+* :bug: strip readOnly/writeOnly props under additionalProperties ([9484372](https://github.com/Morgbn/nuxt-oa/commit/94843721190b1438dde122adef391e9ed4fd9862))
+
+
+### Features
+
+* :sparkles: possibility to extend schema ([d4380ac](https://github.com/Morgbn/nuxt-oa/commit/d4380ac30c0652b18fe20a0bc05a4a42f26dd67f))
+
 # [2.1.0](https://github.com/Morgbn/nuxt-oa/compare/v2.0.1...v2.1.0) (2026-08-10)
 
 
