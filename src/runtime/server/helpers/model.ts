@@ -536,7 +536,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     // Insert valid data
     const results: ReturnType<typeof this.cleanJSON>[] = []
     if (prepared.length) {
-      let insertedIds: Record<number, ObjectId> = {}
+      let insertedIds: Record<number, ObjectId>
       let writeErrors: WriteError[] = []
       try {
         const bulkResult = await this.collection.insertMany(preparedItems, { ordered: false })

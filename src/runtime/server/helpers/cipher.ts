@@ -14,7 +14,7 @@ export function encrypt(data: unknown, iv: string, key: Buffer, algorithm: Ciphe
   const typeCode = type === 'bigint' ? 'bi' : type === 'string' ? '' : type.slice(0, 1) as TypeCode
   const ivBuffer = Buffer.from(iv, 'base64')
   let encrypted: Buffer | undefined
-  let encryptedStr = ''
+  let encryptedStr: string
   try {
     const cipher = createCipheriv(algorithm, key, ivBuffer)
     encrypted = Buffer.concat([cipher.update(data as string), cipher.final()])
@@ -38,7 +38,7 @@ export function decrypt(data: string | undefined | null, iv: string, key: Buffer
   const authTagBuffer = Buffer.from(authTag, 'base64')
   const encryptedBuffer = Buffer.from(encrypted, 'base64')
   let decrypted: Buffer | undefined
-  let decryptedStr: string | undefined = undefined
+  let decryptedStr: string | undefined
   try {
     const decipher = createDecipheriv(algorithm, key, ivBuffer)
     decipher.setAuthTag(authTagBuffer)
