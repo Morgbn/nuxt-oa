@@ -1047,6 +1047,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
 }
 
 export type ModelInstance = typeof Model
+export type OaModel<T extends OaModelName> = Model<T>
 
 const modelsCache: Record<string, any> = {}
 export function useOaModel<T extends OaModelName>(name: T): Model<T> {

@@ -239,7 +239,7 @@ export default defineNuxtModule<ModuleOptions>({
     })
     nuxt.options.nitro.imports.presets.push({
       from: templateNitro.dst,
-      imports: ['oaSchemasByName', 'oaDefsSchemas', 'useOaServerSchema', 'OaModelName']
+      imports: ['oaSchemasByName', 'oaDefsSchemas', 'useOaServerSchema']
     })
 
     // Add j2u (auto form generator)
@@ -259,7 +259,10 @@ export default defineNuxtModule<ModuleOptions>({
     }
     addOaTypeTemplate('types/nuxt-oa.d.ts', s => genTypes(s.schemasByName, s.defsSchemas, clientSchemaByName), { nuxt: true, nitro: true, shared: true })
     addOaTypeTemplate('types/nuxt-oa-json.d.ts', s => aliasTypes(s.schemasByName, s.defsSchemas, 'Json'), { nuxt: true })
-    addOaTypeTemplate('types/nuxt-oa-db.d.ts', s => aliasTypes(s.schemasByName, s.defsSchemas, 'Db'), { nitro: true })
+    addOaTypeTemplate('types/nuxt-oa-db.d.ts', s => [
+      aliasTypes(s.schemasByName, s.defsSchemas, 'Db'),
+      `type OaModel<T extends OaModelName> = import('${resolve('runtime/server/helpers/model')}').OaModel<T>`
+    ].join('\n'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
     addTypeTemplate({
       filename: 'types/oa-virtual.d.ts',
