@@ -1,5 +1,6 @@
 import type { CipherGCMTypes } from 'node:crypto'
 import type { MongoClientOptions } from 'mongodb'
+import type { JSONSchema7 } from 'json-schema'
 
 // API General Info: https://swagger.io/docs/specification/api-general-info/
 export interface OpenApiGeneralInfo {
@@ -54,7 +55,23 @@ export interface ModuleOptions {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Schema = { [key: string]: any }
 
-export type DefsSchema = { $id: string, definitions: Record<string, Schema> }
+export type OaTimestamps = { createdAt?: boolean, updatedAt?: boolean }
+export type OaUserstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
+
+/** JSON Schema draft-07 + nuxt-oa keywords */
+export type OaSchema = JSONSchema7 & {
+  /** OpenAPI 3.0: also accepts `null` */
+  nullable?: boolean
+  encryptedProperties?: string[]
+  /** `true` = track all (except readOnly props) */
+  trackedProperties?: string[] | true
+  timestamps?: OaTimestamps | boolean
+  userstamps?: OaUserstamps | boolean
+  /** Overrides module's `maxBulkSize` */
+  maxBulkSize?: number
+}
+
+export type DefsSchema = { $id: string, definitions: Record<string, OaSchema> }
 
 declare module '@nuxt/schema' {
   interface NuxtOptions {

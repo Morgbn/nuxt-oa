@@ -8,7 +8,7 @@ import type { Collection, CountDocumentsOptions, DeleteOptions, DeleteResult, Fi
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { OaDbModels, OaModelName } from 'nuxt-oa'
-import type { Schema } from '../../types'
+import type { OaSchema, OaTimestamps, OaUserstamps, Schema } from '../../types'
 import { defaultDbName, useCol, useDb, useObjectId } from './db'
 import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
@@ -55,14 +55,10 @@ ajv.addKeyword({
   error: { message: 'must be an ObjectId' }
 })
 
-type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
-type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
-
 /** Fields managed by nuxt-oa, common to every model's db item */
 export type OaBaseDbItem = { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, deletedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, deletedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
 type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & OaBaseDbItem
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
-type OaSchema<T extends OaModelName> = { properties: Schema, encryptedProperties?: string[], trackedProperties?: OaTrackedProps<T>[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean, maxBulkSize?: number }
 
 type HookResult = Promise<void> | void
 /** Item as seen by hooks & returned by cleanJSON (`id` instead of `_id` once cleaned) */
@@ -159,8 +155,8 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   encryptedProps: string[]
   cipherKey: Buffer | undefined
   trackedProps: OaTrackedProps<T>[]
-  timestamps: Timestamps
-  userstamps: Userstamps
+  timestamps: OaTimestamps
+  userstamps: OaUserstamps
   maxBulkSize: number
   schema: Schema
   validator: ValidateFunction
@@ -183,7 +179,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     this.onBeforeGetCollection = () => {}
     this.callHook('collection:ready', { collection: this.collection, dbName: defaultDbName, defaultDbName })
 
-    const schema = schemasByName[name] as OaSchema<T>
+    const schema: OaSchema = schemasByName[name]
     this.encryptedProps = []
     if (Array.isArray(schema.encryptedProperties)) { // props to encrypt
       this.encryptedProps = schema.encryptedProperties
@@ -213,7 +209,8 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       for (const key in schema.properties) {
         // except readOnly properties & id & createdAt/By
         if (['id', 'createdAt', 'createdBy'].includes(key)) continue
-        if ('readOnly' in schema.properties[key] && schema.properties[key].readOnly) continue
+        const prop = schema.properties[key]
+        if (typeof prop === 'object' && prop.readOnly) continue
         props.add(key)
       }
     }

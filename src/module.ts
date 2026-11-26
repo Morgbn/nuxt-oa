@@ -270,6 +270,7 @@ export default defineNuxtModule<ModuleOptions>({
       `type OaEventLike = import('${modelPath}').OaEventLike`
     ].join('\n'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
+    const typesPath = resolve('runtime/types')
     addTypeTemplate({
       filename: 'types/oa-virtual.d.ts',
       getContents: () => [
@@ -278,8 +279,9 @@ export default defineNuxtModule<ModuleOptions>({
         `  export default config`,
         `}`,
         `declare module '#oa-nitro' {`,
-        `  export const oaSchemasByName: Record<string, any>`,
-        `  export const oaDefsSchemas: { $id: string, definitions: Record<string, any> }[]`,
+        `  type OaSchema = import('${typesPath}').OaSchema`,
+        `  export const oaSchemasByName: Record<import('nuxt-oa').OaModelName, OaSchema>`,
+        `  export const oaDefsSchemas: import('${typesPath}').DefsSchema[]`,
         `  export function useOaServerSchema(): { schemasByName: typeof oaSchemasByName, defsSchemas: typeof oaDefsSchemas }`,
         `}`
       ].join('\n')

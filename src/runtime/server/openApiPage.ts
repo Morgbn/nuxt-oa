@@ -9,8 +9,8 @@ const { openApiGeneralInfo, openApiServers } = useOaConfig()
 
 const hasMultiDefsId = oaDefsSchemas.length > 1
 const defsComponents = oaDefsSchemas.reduce<Record<string, Schema>>((o, schema) => {
-  for (const key in schema.definitions) {
-    o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = schema.definitions[key as keyof typeof schema.definitions]
+  for (const [key, def] of Object.entries(schema.definitions)) {
+    o[hasMultiDefsId ? `${schema.$id}_${key}` : key] = def
   }
   return o
 }, {})
