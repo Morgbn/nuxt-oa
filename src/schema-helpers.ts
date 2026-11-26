@@ -31,6 +31,9 @@ function simplestType(schema: Schema, interfaceName: string, stack: Stack): stri
   if (schema.format === 'date' || schema.format === 'date-time') {
     return `${schema.type ?? 'string'}|Date${suffix}`
   }
+  if (schema.format === 'objectid') {
+    return `string|import('mongodb').ObjectId${suffix}`
+  }
   return `${schema.type ?? 'any'}${suffix}`
 }
 function dicType(schema: Schema, interfaceName: string, stack: Stack): string {
@@ -155,7 +158,7 @@ function genTypes(schema: Schema, interfaceName: string) {
 
 /** Add id, replace timestamps / userstamps / trackedProperties… */
 function cleanSchema(schema: Schema, typeName: string) {
-  const tStr = { type: 'string' }
+  const tObjectId = { type: 'string', format: 'objectid' }
   const tDate = { type: 'string', format: 'date' }
 
   schema.properties = { id: { type: 'string' }, ...schema.properties }
@@ -170,7 +173,7 @@ function cleanSchema(schema: Schema, typeName: string) {
 
   if (schema.userstamps) {
     const userstamps = schema.userstamps === true ? { createdBy: true, updatedBy: true, deletedBy: true } : (schema.userstamps || {})
-    schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tStr }), {} as Record<string, typeof tStr>) }
+    schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tObjectId }), {} as Record<string, typeof tObjectId>) }
     delete schema.userstamps
   }
   const props = new Set<string>() // props to put in updates

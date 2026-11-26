@@ -21,6 +21,11 @@
       "format": "date-time",
       "nullable": true
     },
+    "ownerId": {
+      "type": "string",
+      "format": "objectid",
+      "nullable": true
+    },
     "readOnlyProp": {
       "type": "string",
       "readOnly": true

@@ -3,8 +3,8 @@ import { randomBytes } from 'node:crypto'
 import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { KeywordDefinition, ValidateFunction } from 'ajv'
-import { MongoBulkWriteError, MongoServerError } from 'mongodb'
-import type { Collection, Document, Filter, ObjectId, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
+import { MongoBulkWriteError, MongoServerError, ObjectId } from 'mongodb'
+import type { Collection, Document, Filter, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { OaModels, OaModelName } from 'nuxt-oa'
@@ -20,8 +20,40 @@ const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer, maxBulkSize: de
 const { schemasByName, defsSchemas } = useOaServerSchema()
 const noDbClient = import.meta.prerender && !dbClientOnRenderer
 
-const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas })
+/** Copy of a schema for ajv: `format: 'objectid'` fields are validated & cast to ObjectId by the `oaObjectId` keyword */
+function toAjvSchema<S extends Schema>(schema: S): S {
+  const clone = structuredClone(schema)
+  const stack: Schema[] = [clone]
+  while (stack.length) {
+    const el = stack.pop()!
+    if (el.format === 'objectid') {
+      el.oaObjectId = { nullable: !!el.nullable } // "nullable" can't be used without "type"
+      delete el.type
+      delete el.format
+      delete el.nullable
+    }
+    for (const v of Object.values(el)) {
+      if (v && typeof v === 'object') stack.push(v)
+    }
+  }
+  return clone
+}
+
+const ajv = new Ajv({ removeAdditional: true, schemas: defsSchemas.map(toAjvSchema) })
 addFormats(ajv)
+ajv.addFormat('objectid', (s: string) => ObjectId.isValid(s))
+ajv.addKeyword({
+  keyword: 'oaObjectId',
+  modifying: true,
+  schemaType: 'object',
+  validate: ({ nullable }: { nullable: boolean }, data: unknown, _parentSchema, cxt) => {
+    if (data === null) return nullable
+    if (!ObjectId.isValid(data as string)) return false
+    if (cxt) cxt.parentData[cxt.parentDataProperty] = new ObjectId(data as string)
+    return true
+  },
+  error: { message: 'must be an ObjectId' }
+})
 
 type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
 type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
@@ -166,7 +198,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     this.schema = { additionalProperties: false, ...schema } // set additionalProperties to false by default
     cleanSchema(this.schema)
 
-    this.validator = ajv.compile(this.schema)
+    this.validator = ajv.compile(toAjvSchema(this.schema))
 
     this.getAllCleaner = el => this.cleanJSON(el)
   }

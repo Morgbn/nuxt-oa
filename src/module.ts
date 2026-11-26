@@ -141,10 +141,26 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
+    // Client ajv instances (e.g. j2u) don't know the 'objectid' format: use an equivalent pattern
+    const objectIdToPattern = (schema: Schema) => {
+      const stack = [schema]
+      while (stack.length) {
+        const el = stack.pop()!
+        if (el.format === 'objectid') {
+          delete el.format
+          el.pattern = '^[\\da-fA-F]{24}$'
+        }
+        for (const v of Object.values(el)) {
+          if (v && typeof v === 'object') stack.push(v as Schema)
+        }
+      }
+      return schema
+    }
+
     // Provide oa[ModelName]Schema for each schema
     const clientSchemaByName: Record<string, Schema> = {}
-    for (const modelName in schemasByName) {
-      const schema = JSON.parse(JSON.stringify(schemasByName[modelName]))
+    for (const [modelName, modelSchema] of Object.entries(schemasByName)) {
+      const schema = objectIdToPattern(structuredClone(modelSchema))
       schema.type = 'object'
       delete schema.encryptedProperties
       delete schema.trackedProperties
@@ -209,7 +225,7 @@ export default defineNuxtModule<ModuleOptions>({
       filename: 'oa/useOaDefsSchema.ts',
       write: true,
       getContents: () => [
-        `const byId = ${JSON.stringify(defsById)} as const`,
+        `const byId = ${JSON.stringify(objectIdToPattern(structuredClone(defsById)))} as const`,
         `export type OaDefSchemaKey = keyof typeof byId`,
         `export const useOaDefsSchema = (id: OaDefSchemaKey) => byId[id]`
       ].join('\n')
