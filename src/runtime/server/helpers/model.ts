@@ -4,7 +4,7 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import { MongoBulkWriteError, MongoServerError, ObjectId } from 'mongodb'
-import type { Collection, Filter, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
+import type { Collection, CountDocumentsOptions, DeleteOptions, DeleteResult, Filter, FindCursor, FindOptions, OptionalUnlessRequiredId, UpdateOptions, UpdateResult, WithId, WriteError } from 'mongodb'
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { OaDbModels, OaModelName } from 'nuxt-oa'
@@ -58,7 +58,9 @@ ajv.addKeyword({
 type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
 type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
 
-type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, deletedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, deletedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
+/** Fields managed by nuxt-oa, common to every model's db item */
+export type OaBaseDbItem = { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, deletedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, deletedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
+type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & OaBaseDbItem
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
 type OaSchema<T extends OaModelName> = { properties: Schema, encryptedProperties?: string[], trackedProperties?: OaTrackedProps<T>[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean, maxBulkSize?: number }
 
@@ -131,7 +133,28 @@ export function cleanSchema(schema: Schema): Schema {
   return schema
 }
 
-export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHooks<T>> {
+/** Filter restricted to `OaBaseDbItem` fields (mongodb's `Filter` accepts any key) */
+type OaBaseFilter = Pick<Filter<OaBaseDbItem>, keyof OaBaseDbItem> & { $and?: OaBaseFilter[], $or?: OaBaseFilter[], $nor?: OaBaseFilter[] }
+/** Update restricted to `OaBaseDbItem` fields (mongodb's `UpdateFilter` accepts any key) */
+type OaBaseUpdate = { $set?: Partial<OaBaseDbItem>, $unset?: { [K in keyof OaBaseDbItem]?: '' | true | 1 } }
+/** Collection subset only accepting `OaBaseDbItem` fields in filters & updates */
+export interface OaBaseCollection {
+  find(filter?: OaBaseFilter, options?: FindOptions): FindCursor<WithId<OaBaseDbItem>>
+  findOne(filter?: OaBaseFilter, options?: FindOptions): Promise<WithId<OaBaseDbItem> | null>
+  countDocuments(filter?: OaBaseFilter, options?: CountDocumentsOptions): Promise<number>
+  updateOne(filter: OaBaseFilter, update: OaBaseUpdate, options?: UpdateOptions): Promise<UpdateResult<OaBaseDbItem>>
+  updateMany(filter: OaBaseFilter, update: OaBaseUpdate, options?: UpdateOptions): Promise<UpdateResult<OaBaseDbItem>>
+  deleteOne(filter?: OaBaseFilter, options?: DeleteOptions): Promise<DeleteResult>
+  deleteMany(filter?: OaBaseFilter, options?: DeleteOptions): Promise<DeleteResult>
+}
+
+/** Non-generic view of any model: lets generic helpers query Mongo without `Filter<OaDbItem<T>>` on an unresolved `T` (TS2589) */
+export interface OaModelBase {
+  readonly name: OaModelName
+  readonly baseCollection: OaBaseCollection
+}
+
+export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHooks<T>> implements OaModelBase {
   name: T
   encryptedProps: string[]
   cipherKey: Buffer | undefined
@@ -213,6 +236,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       this.onBeforeGetCollection({ setDb: (name: string) => this.db(name), defaultDbName })
     this.skipHookBeforeGetCol = false
     return useCol<OaDbItem<T>>(this.collectionName, useDb(this.dbName))
+  }
+
+  /** Collection restricted to `OaBaseDbItem` fields — for generic helpers working on any model (avoids TS2589) */
+  get baseCollection() {
+    return this.collection as OaBaseCollection
   }
 
   /** Change database on the fly */

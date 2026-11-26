@@ -264,6 +264,9 @@ export default defineNuxtModule<ModuleOptions>({
       aliasTypes(s.schemasByName, s.defsSchemas, 'Db'),
       `type OaModel<T extends OaModelName> = import('${modelPath}').OaModel<T>`,
       `type OaPartialItem<T extends OaModelName> = import('${modelPath}').OaPartialItem<T>`,
+      `type OaModelBase = import('${modelPath}').OaModelBase`,
+      `type OaBaseDbItem = import('${modelPath}').OaBaseDbItem`,
+      `type OaBaseCollection = import('${modelPath}').OaBaseCollection`,
       `type OaEventLike = import('${modelPath}').OaEventLike`
     ].join('\n'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
