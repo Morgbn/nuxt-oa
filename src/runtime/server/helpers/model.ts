@@ -397,7 +397,15 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   }
 
   /**
-   * Retrieve mongodb document if one or more hooks '[action]:document' are set
+   * Run hooks one after another in registration order, stopping at the first rejection
+   * so a failing guard (e.g. permission check) prevents later hooks' side effects
+   */
+  private async callHooksSerial(hooks: HookCallback[], arg: object): Promise<void> {
+    for (const caller of hooks) await caller(arg)
+  }
+
+  /**
+   * Retrieve mongodb document if one or more hooks '[action]:document' are set (run serially)
    * @param action
    * @param _id document id
    * @param event incoming request
@@ -408,14 +416,14 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     await this.callHookWith(async (hooks: HookCallback[]) => {
       if (!hooks.length) return
       document = await this.collection.findOne({ _id } as any)
-      const proms = hooks.map(caller => caller({ document, event }))
-      return Promise.all(proms)
+      return this.callHooksSerial(hooks, { document, event })
     }, `${action}:document`, {})
     return document
   }
 
   /**
-   * Retrieve mongodb documents if one or more hooks '[action]:document' are set, isolating a
+   * Retrieve mongodb documents if one or more hooks '[action]:document' are set (hooks run serially per document,
+   * documents in parallel), isolating a
    * single document's hook rejection to that document (via `rejectedIds`) instead of aborting the batch.
    * The bulk '[bulkAction]:documents' hook only receives the documents that survived that per-document
    * hook, so it reflects what will actually continue through the batch, not the raw fetched set.
@@ -435,7 +443,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     const survivors = await this.settleWithErrors({
       items: documents,
       run: async (document) => {
-        await Promise.all(docHooks.map(caller => caller({ document, event, bulk: true })))
+        await this.callHooksSerial(docHooks, { document, event, bulk: true })
         return document
       },
       errors,
@@ -443,7 +451,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     })
 
     // Only the documents that survived the per-document hook are actually going to be processed further down
-    await Promise.all(docsHooks.map(caller => caller({ documents: survivors, event })))
+    await this.callHooksSerial(docsHooks, { documents: survivors, event })
 
     const survivorIds = new Set(survivors.map(doc => doc._id.toString()))
     const rejectedIds = new Set(documents.filter(doc => !survivorIds.has(doc._id.toString())).map(doc => doc._id.toString()))
