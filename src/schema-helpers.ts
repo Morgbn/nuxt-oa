@@ -69,7 +69,8 @@ function genInterface(schema: Schema, interfaceName: string, stack: Stack, ctx: 
     if (propSchema.description) {
       str += `  /**${['', ...propSchema.description.trim().split('\n')].join('\n   * ')}\n   */\n`
     }
-    str += `  ${propSchema.readOnly ? 'readonly ' : ''}${jsonKey(propName)}${schema.required?.includes(propName) ? '' : '?'}: `
+    // readOnly = not writable by the client; server code (e.g. hooks) sets it
+    str += `  ${propSchema.readOnly && ctx.json ? 'readonly ' : ''}${jsonKey(propName)}${schema.required?.includes(propName) ? '' : '?'}: `
 
     const propInterfaceName = `${interfaceName}${capFirst(propName.replace(/\W/g, ''))}`
     if (propSchema.type === 'array') {
