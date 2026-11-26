@@ -96,14 +96,19 @@ function genInterface(schema: Schema, interfaceName: string, stack: Stack, ctx: 
   return str + '}\n'
 }
 
+/** `not` sub-schema fully described by its TS type (no extra constraint like `minLength`, `required`…), so `Exclude` is exact */
+const notKeys = new Set(['type', 'enum'])
+const isTypeOnly = (schema: Schema) => Object.keys(schema).every(k => notKeys.has(k))
+
 function genType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx) {
-  let str = `type ${interfaceName} = `
+  const decl = `type ${interfaceName} = `
   if (schema.additionalProperties && Object.keys(schema.additionalProperties).length) {
-    return `${str}${dicType(schema, interfaceName, stack, ctx)}`
+    return `${decl}${dicType(schema, interfaceName, stack, ctx)}`
   }
   if (schema.$ref) {
-    return `${str}${refTypeName(schema.$ref, ctx)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
+    return `${decl}${refTypeName(schema.$ref, ctx)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
   }
+  let str = ''
   if (schema.enum) {
     str += schema.enum
       .map((v: unknown) => v === null ? `${v}` : typeof v === 'number' ? v : `'${v}'`)
@@ -118,7 +123,7 @@ function genType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx) 
       stack.push([schema.anyOf[i], propertyInterfaceName])
       anyOf.push(propertyInterfaceName)
     }
-    str += `& (${anyOf.join(' | ')}) // AnyOf`
+    str += ` & (${anyOf.join(' | ')})`
   }
   if (schema.oneOf) { // validates the value against exactly one of the sub-schemas
     const oneOf = []
@@ -127,7 +132,7 @@ function genType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx) 
       stack.push([schema.oneOf[i], propertyInterfaceName])
       oneOf.push(propertyInterfaceName)
     }
-    str += `& OneOf<[${oneOf.join(', ')}]>`
+    str += ` & OneOf<[${oneOf.join(', ')}]>`
   }
   if (schema.allOf) { // validates the value against all the sub-schemas
     const allOf = []
@@ -136,14 +141,15 @@ function genType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx) 
       stack.push([schema.allOf[i], propertyInterfaceName])
       allOf.push(propertyInterfaceName)
     }
-    str += `& ${allOf.join(' & ')} // AllOf`
+    str += ` & ${allOf.join(' & ')}`
   }
-  if (schema.not) {
-    const propertyInterfaceName = `${interfaceName}Not`
-    stack.push([schema.not, propertyInterfaceName])
-    str += `& Exclude<any, ${propertyInterfaceName}>`
+  // TS has no negated types: only `Exclude` exactly-typed `not` (e.g. `{ type: 'null' }`, `{ enum: [...] }`), otherwise ignore it (runtime-only check)
+  if (schema.not && isTypeOnly(schema.not)) {
+    const notName = `${interfaceName}Not`
+    stack.push([schema.not, notName])
+    return `${decl}Exclude<${str}, ${notName}>`
   }
-  return str
+  return decl + str
 }
 
 function genTypes(schema: Schema, interfaceName: string, ctx: Ctx) {
