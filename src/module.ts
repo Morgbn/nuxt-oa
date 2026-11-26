@@ -259,9 +259,11 @@ export default defineNuxtModule<ModuleOptions>({
     }
     addOaTypeTemplate('types/nuxt-oa.d.ts', s => genTypes(s.schemasByName, s.defsSchemas, clientSchemaByName), { nuxt: true, nitro: true, shared: true })
     addOaTypeTemplate('types/nuxt-oa-json.d.ts', s => aliasTypes(s.schemasByName, s.defsSchemas, 'Json'), { nuxt: true })
+    const modelPath = resolve('runtime/server/helpers/model')
     addOaTypeTemplate('types/nuxt-oa-db.d.ts', s => [
       aliasTypes(s.schemasByName, s.defsSchemas, 'Db'),
-      `type OaModel<T extends OaModelName> = import('${resolve('runtime/server/helpers/model')}').OaModel<T>`
+      `type OaModel<T extends OaModelName> = import('${modelPath}').OaModel<T>`,
+      `type OaPartialItem<T extends OaModelName> = import('${modelPath}').OaPartialItem<T>`
     ].join('\n'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
     addTypeTemplate({

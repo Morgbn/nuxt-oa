@@ -4,7 +4,7 @@ import Ajv from 'ajv'
 import addFormats from 'ajv-formats'
 import type { KeywordDefinition, ValidateFunction } from 'ajv'
 import { MongoBulkWriteError, MongoServerError, ObjectId } from 'mongodb'
-import type { Collection, Document, Filter, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
+import type { Collection, Filter, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
 import type { OaDbModels, OaModelName } from 'nuxt-oa'
@@ -58,15 +58,17 @@ ajv.addKeyword({
 type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
 type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
 
-type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
+type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, deletedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, deletedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
 type OaSchema<T extends OaModelName> = { properties: Schema, encryptedProperties?: string[], trackedProperties?: OaTrackedProps<T>[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean, maxBulkSize?: number }
 
 type HookResult = Promise<void> | void
-type HookArgData = { data: Schema }
-type HookArgDataArray = { data: Schema[] }
-type HookArgDoc = { document?: WithId<Document> | null }
-type HookArgDocs = { documents: WithId<Document>[] }
+/** Item as seen by hooks & returned by cleanJSON (`id` instead of `_id` once cleaned) */
+export type OaPartialItem<T extends OaModelName> = Partial<OaDbItem<T>> & { id?: string | ObjectId }
+type HookArgData<T extends OaModelName> = { data: OaPartialItem<T> }
+type HookArgDataArray<T extends OaModelName> = { data: OaPartialItem<T>[] }
+type HookArgDoc<T extends OaModelName> = { document?: WithId<OaDbItem<T>> | null }
+type HookArgDocs<T extends OaModelName> = { documents: WithId<OaDbItem<T>>[] }
 type HookArgEv = { event?: H3Event }
 type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 // ids is the raw input as given by the caller; _ids only contains the ones that parsed successfully —
@@ -76,36 +78,36 @@ type HookArgErrors = { errors: { data?: Schema, error: unknown }[] }
 export interface ModelNuxtOaHooks<T extends OaModelName> {
   'collection:ready': (d: { collection: Collection<OaDbItem<T>>, dbName: string, defaultDbName: string }) => HookResult
   'collection:before': (d: { setDb: (dbName: string) => void, defaultDbName: string }) => HookResult
-  'model:cleanJSON': (d: HookArgData) => HookResult
+  'model:cleanJSON': (d: HookArgData<T>) => HookResult
   'getAll:before': (d: HookArgEv) => HookResult
-  'create:before': (d: HookArgData & HookArgEv) => HookResult
-  'create:after': (d: HookArgData & HookArgEv) => HookResult
-  'create:done': (d: HookArgData & HookArgEv) => HookResult
-  'bulkCreate:before': (d: HookArgDataArray & HookArgEv) => HookResult
-  'bulkCreate:after': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
-  'bulkCreate:done': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
-  'update:before': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
-  'update:document': (d: HookArgDoc & HookArgEv) => HookResult
-  'update:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
-  'update:done': (d: HookArgData & HookArgEv) => HookResult
-  'bulkUpdate:before': (d: HookArgDataArray & HookArgEv & HookArgIdsArray) => HookResult
-  'bulkUpdate:documents': (d: HookArgDocs & HookArgEv) => HookResult
-  'bulkUpdate:after': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
-  'bulkUpdate:done': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
+  'create:before': (d: HookArgData<T> & HookArgEv) => HookResult
+  'create:after': (d: HookArgData<T> & HookArgEv) => HookResult
+  'create:done': (d: HookArgData<T> & HookArgEv) => HookResult
+  'bulkCreate:before': (d: HookArgDataArray<T> & HookArgEv) => HookResult
+  'bulkCreate:after': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
+  'bulkCreate:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
+  'update:before': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
+  'update:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
+  'update:after': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
+  'update:done': (d: HookArgData<T> & HookArgEv) => HookResult
+  'bulkUpdate:before': (d: HookArgDataArray<T> & HookArgEv & HookArgIdsArray) => HookResult
+  'bulkUpdate:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
+  'bulkUpdate:after': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
+  'bulkUpdate:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
   'archive:before': (d: HookArgEv & HookArgIds) => HookResult
-  'archive:document': (d: HookArgDoc & HookArgEv) => HookResult
-  'archive:after': (d: HookArgData & HookArgEv & HookArgIds) => HookResult
-  'archive:done': (d: HookArgData & HookArgEv) => HookResult
+  'archive:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
+  'archive:after': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
+  'archive:done': (d: HookArgData<T> & HookArgEv) => HookResult
   'bulkArchive:before': (d: HookArgEv & HookArgIdsArray) => HookResult
-  'bulkArchive:documents': (d: HookArgDocs & HookArgEv) => HookResult
-  'bulkArchive:after': (d: HookArgData & HookArgEv & { _ids: ObjectId[] } & HookArgErrors) => HookResult
-  'bulkArchive:done': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
+  'bulkArchive:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
+  'bulkArchive:after': (d: HookArgData<T> & HookArgEv & { _ids: ObjectId[] } & HookArgErrors) => HookResult
+  'bulkArchive:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
   'delete:before': (d: HookArgEv & HookArgIds) => HookResult
-  'delete:document': (d: HookArgDoc & HookArgEv) => HookResult
-  'delete:done': (d: HookArgData & HookArgEv & { deletedCount: number }) => HookResult
+  'delete:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
+  'delete:done': (d: HookArgData<T> & HookArgEv & { deletedCount: number }) => HookResult
   'bulkDelete:before': (d: HookArgEv & HookArgIdsArray) => HookResult
-  'bulkDelete:documents': (d: HookArgDocs & HookArgEv) => HookResult
-  'bulkDelete:done': (d: HookArgDataArray & HookArgEv & HookArgErrors) => HookResult
+  'bulkDelete:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
+  'bulkDelete:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
 }
 
 type SettledWithErrorsOptions<Item, R> = {
@@ -137,7 +139,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
   maxBulkSize: number
   schema: Schema
   validator: ValidateFunction
-  getAllCleaner: (el: Partial<OaDbItem<T>> | WithId<OaDbItem<T>>) => Omit<Partial<OaDbItem<T>> | WithId<OaDbItem<T>>, '_id' | '_iv'> & { id?: ObjectId }
+  getAllCleaner: (el: Partial<OaDbItem<T>> | WithId<OaDbItem<T>>) => OaPartialItem<T>
   private collectionName: string
   private dbName: string
   private allDbNames: Set<string>
@@ -306,7 +308,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    *  - decrypt props if needed
    * @param d representation of a model instance
    */
-  cleanJSON<D extends Partial<OaDbItem<T>> | WithId<OaDbItem<T>> | OptionalUnlessRequiredId<OaDbItem<T>>>(d: D): Omit<D, '_id' | '_iv'> & { id?: ObjectId } {
+  cleanJSON<D extends Partial<OaDbItem<T>> | WithId<OaDbItem<T>> | OptionalUnlessRequiredId<OaDbItem<T>>>(d: D): OaPartialItem<T> {
     const _iv = d._iv
     const data = { ...d, id: d._id }
     delete data._id
@@ -327,8 +329,9 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       }
     }
 
-    this.callHook('model:cleanJSON', { data })
-    return data
+    const json = data as OaPartialItem<T> // OaDbModels[T] is opaque for a generic T
+    this.callHook('model:cleanJSON', { data: json })
+    return json
   }
 
   /**
@@ -511,7 +514,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param at timestamp
    */
   private async createHelper(d: OptionalUnlessRequiredId<OaDbItem<T>>, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event, userId?: string | ObjectId, at = new Date()) {
-    await this.callHook('create:before', { data: d, event })
+    await this.callHook('create:before', { data: d as OaPartialItem<T>, event })
 
     this.validate(d)
     const data = readOnlyData ? { ...d, ...readOnlyData } : d
@@ -521,7 +524,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     if (this.userstamps.createdBy && by) data.createdBy = by
     if (this.userstamps.updatedBy && by) data.updatedBy = by
 
-    await this.callHook('create:after', { data, event })
+    await this.callHook('create:after', { data: data as OaPartialItem<T>, event })
 
     this.encrypt(data)
     return data
@@ -551,7 +554,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    */
   async bulkCreate(d: OptionalUnlessRequiredId<OaDbItem<T>>[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
     this.assertBulkSize(d)
-    await this.callHook('bulkCreate:before', { data: d, event })
+    await this.callHook('bulkCreate:before', { data: d as OaPartialItem<T>[], event })
     // Prepare data
     const at = new Date()
     const errors: HookArgErrors['errors'] = []
@@ -564,7 +567,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       errorData: (item, data, index) => ({ index, ...data })
     })
     const preparedItems = prepared.map(p => p.data)
-    await this.callHook('bulkCreate:after', { data: preparedItems, errors, event })
+    await this.callHook('bulkCreate:after', { data: preparedItems as OaPartialItem<T>[], errors, event })
     // Insert valid data
     const results: ReturnType<typeof this.cleanJSON>[] = []
     if (prepared.length) {
@@ -818,7 +821,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
 
     const data: Schema = { deletedAt: archive ? new Date() : undefined }
     if (this.userstamps.deletedBy) data.deletedBy = archive ? useObjectId(userId) : undefined
-    await this.callHook('archive:after', { id, _id, data, event })
+    await this.callHook('archive:after', { id, _id, data: data as OaPartialItem<T>, event })
 
     const value = await this.collection
       .findOneAndUpdate({ _id } as any, { $set: data } as any, { returnDocument: 'after' })
@@ -875,13 +878,13 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     entries = await this.settleWithErrors({
       items: entries,
       run: async (p) => {
-        await this.callHook('archive:after', { id: p.id, _id: p._id, data: { ...data }, event })
+        await this.callHook('archive:after', { id: p.id, _id: p._id, data: { ...data } as OaPartialItem<T>, event })
         return p
       },
       errors,
       errorData: (p, errData) => ({ id: `${p.id}`, ...errData })
     })
-    await this.callHook('bulkArchive:after', { _ids: entries.map(p => p._id), data, errors, event })
+    await this.callHook('bulkArchive:after', { _ids: entries.map(p => p._id), data: data as OaPartialItem<T>, errors, event })
 
     const results: ReturnType<typeof this.cleanJSON>[] = []
     if (entries.length) {
@@ -931,7 +934,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
 
     const { deletedCount } = await this.collection.deleteOne({ _id } as any)
 
-    await this.callHook('delete:done', { data: { id }, deletedCount, event })
+    await this.callHook('delete:done', { data: { id } as OaPartialItem<T>, deletedCount, event })
     return { deletedCount }
   }
 
@@ -967,7 +970,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     let deletedCount = 0
     // Fed to bulkDelete:done below — kept separate from `entries` so an id rejected by a
     // delete:document hook or missing from the collection isn't reported there as deleted
-    const deletedData: Schema[] = []
+    const deletedData: OaPartialItem<T>[] = []
     const validIds = entries.map(p => p._id)
     const docsResult = await this.callHookDocuments('delete', validIds, errors, event)
     if (validIds.length) {
@@ -998,8 +1001,9 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
               errors.push({ data: { id: `${p.id}` }, error: 'Document not found' })
               return
             }
-            deletedData.push({ id: p.id })
-            return this.callHook('delete:done', { data: { id: p.id }, deletedCount: 1, event })
+            const data = { id: p.id } as OaPartialItem<T>
+            deletedData.push(data)
+            return this.callHook('delete:done', { data, deletedCount: 1, event })
           },
           errors,
           errorData: (p, data) => data ?? { id: `${p.id}` }

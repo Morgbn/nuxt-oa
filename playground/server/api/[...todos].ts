@@ -20,7 +20,7 @@ const auth = oaHandler((ev: H3Event) => {
   security: [{ jwtCookie: [] }]
 })
 
-const setReadOnlyProp = (d: { readOnlyProp?: string, privateN?: number }) => {
+const setReadOnlyProp = (d: OaPartialItem<'Todo'>) => {
   d.readOnlyProp = 'privateN=' + (d.privateN ?? 0)
 }
 
