@@ -70,6 +70,8 @@ type HookArgDocs<T extends OaModelName> = { documents: WithId<OaDbItem<T>>[] }
 /** Minimal event shape: only `context` is read, so callers outside a request needn't forge a full `H3Event` */
 export type OaEventLike = Pick<H3Event, 'context'>
 type HookArgEv = { event?: OaEventLike }
+/** Per-item hook args: `bulk` is `true` when fired from a bulk* method, scoped to that call (unlike a marker in `event.context`) */
+type HookArgItemEv = HookArgEv & { bulk?: true }
 type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 // ids is the raw input as given by the caller; _ids only contains the ones that parsed successfully —
 // they don't correspond by index/length when some ids are malformed
@@ -95,31 +97,31 @@ export interface ModelNuxtOaHooks<T extends OaModelName> {
   'collection:before': (d: { setDb: (dbName: string) => void, defaultDbName: string }) => HookResult
   'model:cleanJSON': (d: HookArgData<T>) => HookResult
   'getAll:before': (d: HookArgEv) => HookResult
-  'create:before': (d: HookArgData<T> & HookArgEv) => HookResult
-  'create:after': (d: HookArgData<T> & HookArgEv) => HookResult
-  'create:done': (d: HookArgData<T> & HookArgEv) => HookResult
+  'create:before': (d: HookArgData<T> & HookArgItemEv) => HookResult
+  'create:after': (d: HookArgData<T> & HookArgItemEv) => HookResult
+  'create:done': (d: HookArgData<T> & HookArgItemEv) => HookResult
   'bulkCreate:before': (d: HookArgDataArray<T> & HookArgEv) => HookResult
   'bulkCreate:after': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
   'bulkCreate:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
-  'update:before': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
-  'update:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
-  'update:after': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
-  'update:done': (d: HookArgData<T> & HookArgEv) => HookResult
+  'update:before': (d: HookArgData<T> & HookArgItemEv & HookArgIds) => HookResult
+  'update:document': (d: HookArgDoc<T> & HookArgItemEv) => HookResult
+  'update:after': (d: HookArgData<T> & HookArgItemEv & HookArgIds) => HookResult
+  'update:done': (d: HookArgData<T> & HookArgItemEv) => HookResult
   'bulkUpdate:before': (d: HookArgDataArray<T> & HookArgEv & HookArgIdsArray) => HookResult
   'bulkUpdate:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
   'bulkUpdate:after': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
   'bulkUpdate:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
-  'archive:before': (d: HookArgEv & HookArgIds) => HookResult
-  'archive:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
-  'archive:after': (d: HookArgData<T> & HookArgEv & HookArgIds) => HookResult
-  'archive:done': (d: HookArgData<T> & HookArgEv) => HookResult
+  'archive:before': (d: HookArgItemEv & HookArgIds) => HookResult
+  'archive:document': (d: HookArgDoc<T> & HookArgItemEv) => HookResult
+  'archive:after': (d: HookArgData<T> & HookArgItemEv & HookArgIds) => HookResult
+  'archive:done': (d: HookArgData<T> & HookArgItemEv) => HookResult
   'bulkArchive:before': (d: HookArgEv & HookArgIdsArray) => HookResult
   'bulkArchive:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
   'bulkArchive:after': (d: HookArgData<T> & HookArgEv & { _ids: ObjectId[] } & HookArgErrors) => HookResult
   'bulkArchive:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
-  'delete:before': (d: HookArgEv & HookArgIds) => HookResult
-  'delete:document': (d: HookArgDoc<T> & HookArgEv) => HookResult
-  'delete:done': (d: HookArgData<T> & HookArgEv & { deletedCount: number }) => HookResult
+  'delete:before': (d: HookArgItemEv & HookArgIds) => HookResult
+  'delete:document': (d: HookArgDoc<T> & HookArgItemEv) => HookResult
+  'delete:done': (d: HookArgData<T> & HookArgItemEv & { deletedCount: number }) => HookResult
   'bulkDelete:before': (d: HookArgEv & HookArgIdsArray) => HookResult
   'bulkDelete:documents': (d: HookArgDocs<T> & HookArgEv) => HookResult
   'bulkDelete:done': (d: HookArgDataArray<T> & HookArgEv & HookArgErrors) => HookResult
@@ -433,7 +435,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     const survivors = await this.settleWithErrors({
       items: documents,
       run: async (document) => {
-        await Promise.all(docHooks.map(caller => caller({ document, event })))
+        await Promise.all(docHooks.map(caller => caller({ document, event, bulk: true })))
         return document
       },
       errors,
@@ -651,7 +653,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       results.push(...created.map(c => c.json))
       await this.settleWithErrors({
         items: created,
-        run: c => this.callHook('create:done', { data: c.json, event }),
+        run: c => this.callHook('create:done', { data: c.json, event, bulk: true }),
         errors,
         errorRef: c => ({ index: c.index }),
         legacyData: c => c.json
@@ -699,9 +701,10 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    * @param date update date
+   * @param bulk true when called from bulkUpdate
    * @returns update data object
    */
-  private async getUpdateData(id: string | ObjectId | undefined, _id: ObjectId, d: Partial<OaDbItem<T> & Schema>, document: WithId<OaDbItem<T>> | null, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike, date?: Date) {
+  private async getUpdateData(id: string | ObjectId | undefined, _id: ObjectId, d: Partial<OaDbItem<T> & Schema>, document: WithId<OaDbItem<T>> | null, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike, date?: Date, bulk?: true) {
     const data = readOnlyData ? { ...d, ...readOnlyData } : { ...d }
 
     if (this.timestamps.updatedAt) data.updatedAt = date ?? new Date()
@@ -720,7 +723,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       data.updates = [...(instance.updates || []), update]
     }
 
-    await this.callHook('update:after', { id, _id, data, event })
+    await this.callHook('update:after', { id, _id, data, event, bulk })
 
     if (this.cipherKey && instance) {
       data._iv = instance._iv
@@ -793,7 +796,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     const updates = await this.settleWithErrors({
       items: parsed,
       run: async (update) => {
-        await this.callHook('update:before', { id: update.id, _id: update._id, data: update.d, event })
+        await this.callHook('update:before', { id: update.id, _id: update._id, data: update.d, event, bulk: true })
         return update
       },
       errors,
@@ -814,7 +817,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         this.validate(update.d)
         const document = documentsMap.get(update._id.toString())
         if (!document) throw createError({ statusCode: 404, statusMessage: 'Document not found' })
-        const data = await this.getUpdateData(update.id, update._id, update.d, document, userId, readOnlyData, event, at)
+        const data = await this.getUpdateData(update.id, update._id, update.d, document, userId, readOnlyData, event, at, true)
         return {
           data,
           updateOne: {
@@ -857,7 +860,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
 
     await this.settleWithErrors({
       items: results,
-      run: json => this.callHook('update:done', { data: json, event }),
+      run: json => this.callHook('update:done', { data: json, event, bulk: true }),
       errors,
       errorRef: json => ({ id: `${json.id}` }),
       legacyData: json => json
@@ -920,7 +923,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     let entries = await this.settleWithErrors({
       items: parsed,
       run: async (p) => {
-        await this.callHook('archive:before', { id: p.id, _id: p._id, event })
+        await this.callHook('archive:before', { id: p.id, _id: p._id, event, bulk: true })
         return p
       },
       errors,
@@ -940,7 +943,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     entries = await this.settleWithErrors({
       items: entries,
       run: async (p) => {
-        await this.callHook('archive:after', { id: p.id, _id: p._id, data: { ...data } as OaPartialItem<T>, event })
+        await this.callHook('archive:after', { id: p.id, _id: p._id, data: { ...data } as OaPartialItem<T>, event, bulk: true })
         return p
       },
       errors,
@@ -974,7 +977,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
 
     await this.settleWithErrors({
       items: results,
-      run: json => this.callHook('archive:done', { data: json, event }),
+      run: json => this.callHook('archive:done', { data: json, event, bulk: true }),
       errors,
       errorRef: json => ({ id: `${json.id}` }),
       legacyData: json => json
@@ -1024,7 +1027,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     const entries = await this.settleWithErrors({
       items: parsed,
       run: async (p) => {
-        await this.callHook('delete:before', { id: p.id, _id: p._id, event })
+        await this.callHook('delete:before', { id: p.id, _id: p._id, event, bulk: true })
         return p
       },
       errors,
@@ -1067,7 +1070,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
             }
             const data = { id: p.id } as OaPartialItem<T>
             deletedData.push(data)
-            return this.callHook('delete:done', { data, deletedCount: 1, event })
+            return this.callHook('delete:done', { data, deletedCount: 1, event, bulk: true })
           },
           errors,
           errorRef: p => ({ id: `${p.id}` })
