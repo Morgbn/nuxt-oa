@@ -3,6 +3,7 @@ import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
 import { useObjectId } from './db'
 import type Model from './model'
+import type { OaEventLike } from './model'
 import { oaHandler } from './router'
 import type { OaModelName } from 'nuxt-oa'
 
@@ -43,7 +44,7 @@ function validateBulkArray(value: unknown, maxBulkSize: number, itemIsValid: (it
   }
 }
 
-export function useUserId(event: H3Event): ObjectId {
+export function useUserId(event: OaEventLike): ObjectId {
   const id = event.context.user?.id
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'No user.id in event.context' })

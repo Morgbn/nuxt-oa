@@ -69,7 +69,9 @@ type HookArgData<T extends OaModelName> = { data: OaPartialItem<T> }
 type HookArgDataArray<T extends OaModelName> = { data: OaPartialItem<T>[] }
 type HookArgDoc<T extends OaModelName> = { document?: WithId<OaDbItem<T>> | null }
 type HookArgDocs<T extends OaModelName> = { documents: WithId<OaDbItem<T>>[] }
-type HookArgEv = { event?: H3Event }
+/** Minimal event shape: only `context` is read, so callers outside a request needn't forge a full `H3Event` */
+export type OaEventLike = Pick<H3Event, 'context'>
+type HookArgEv = { event?: OaEventLike }
 type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 // ids is the raw input as given by the caller; _ids only contains the ones that parsed successfully —
 // they don't correspond by index/length when some ids are malformed
@@ -338,7 +340,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * Get all instances of the model
    * @param event incoming request
    */
-  async getAll(event?: H3Event) {
+  async getAll(event?: OaEventLike) {
     await this.callHook('getAll:before', { event })
     return (await this.collection.find({}).toArray()).map(this.getAllCleaner)
   }
@@ -350,7 +352,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    * @returns document
    */
-  private async callHookDocument(action: 'update' | 'archive' | 'delete', _id: ObjectId, event?: H3Event): Promise<WithId<OaDbItem<T>> | null> {
+  private async callHookDocument(action: 'update' | 'archive' | 'delete', _id: ObjectId, event?: OaEventLike): Promise<WithId<OaDbItem<T>> | null> {
     let document: WithId<OaDbItem<T>> | null = null
     await this.callHookWith(async (hooks: HookCallback[]) => {
       if (!hooks.length) return
@@ -372,7 +374,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    * @returns fetched documents (unfiltered) and the ids whose single-document hook rejected
    */
-  private async callHookDocuments(action: 'update' | 'archive' | 'delete', _ids: ObjectId[], errors: HookArgErrors['errors'], event?: H3Event): Promise<{ documents: WithId<OaDbItem<T>>[], rejectedIds: Set<string> } | null> {
+  private async callHookDocuments(action: 'update' | 'archive' | 'delete', _ids: ObjectId[], errors: HookArgErrors['errors'], event?: OaEventLike): Promise<{ documents: WithId<OaDbItem<T>>[], rejectedIds: Set<string> } | null> {
     const docHooks = await new Promise<HookCallback[]>(resolve => this.callHookWith(resolve, `${action}:document`, {}))
     const docsHooks = await new Promise<HookCallback[]>(resolve => this.callHookWith(resolve, `${bulkActionMap[action]}:documents`, {}))
 
@@ -513,7 +515,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param userId user id
    * @param at timestamp
    */
-  private async createHelper(d: OptionalUnlessRequiredId<OaDbItem<T>>, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event, userId?: string | ObjectId, at = new Date()) {
+  private async createHelper(d: OptionalUnlessRequiredId<OaDbItem<T>>, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike, userId?: string | ObjectId, at = new Date()) {
     await this.callHook('create:before', { data: d as OaPartialItem<T>, event })
 
     this.validate(d)
@@ -537,7 +539,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async create(d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+  async create(d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
     const data = await this.createHelper(d, readOnlyData, event, userId)
     const { insertedId } = await this.collection.insertOne(data)
     const json = this.cleanJSON({ _id: insertedId, ...data })
@@ -552,7 +554,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async bulkCreate(d: OptionalUnlessRequiredId<OaDbItem<T>>[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+  async bulkCreate(d: OptionalUnlessRequiredId<OaDbItem<T>>[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
     this.assertBulkSize(d)
     await this.callHook('bulkCreate:before', { data: d as OaPartialItem<T>[], event })
     // Prepare data
@@ -623,7 +625,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * - apply custom validation and authorization logic
    * - reuse existing `create` and `update` hooks
    */
-  async upsert(filter: Filter<OaDbItem<T>>, d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+  async upsert(filter: Filter<OaDbItem<T>>, d: OptionalUnlessRequiredId<OaDbItem<T>>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
     const document = await this.collection.findOne<WithId<OaDbItem<T>>>(filter)
     if (document) return this.update(document._id, d, userId, readOnlyData, event, document)
     return this.create(d, userId, readOnlyData, event)
@@ -641,7 +643,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param date update date
    * @returns update data object
    */
-  private async getUpdateData(id: string | ObjectId | undefined, _id: ObjectId, d: Partial<OaDbItem<T> & Schema>, document: WithId<OaDbItem<T>> | null, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event, date?: Date) {
+  private async getUpdateData(id: string | ObjectId | undefined, _id: ObjectId, d: Partial<OaDbItem<T> & Schema>, document: WithId<OaDbItem<T>> | null, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike, date?: Date) {
     const data = readOnlyData ? { ...d, ...readOnlyData } : { ...d }
 
     if (this.timestamps.updatedAt) data.updatedAt = date ?? new Date()
@@ -678,7 +680,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    * @param existingDoc document already found
    */
-  async update(id: string | ObjectId | undefined, d: Partial<OaDbItem<T> & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event, existingDoc?: WithId<OaDbItem<T>>) {
+  async update(id: string | ObjectId | undefined, d: Partial<OaDbItem<T> & Schema>, userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike, existingDoc?: WithId<OaDbItem<T>>) {
     const _id = useObjectId(id)
     await this.callHook('update:before', { id, _id, data: d, event })
 
@@ -706,7 +708,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async bulkUpdate(u: { id: string | ObjectId, d: Partial<OaDbItem<T> & Schema> }[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: H3Event) {
+  async bulkUpdate(u: { id: string | ObjectId, d: Partial<OaDbItem<T> & Schema> }[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
     this.assertBulkSize(u)
     const errors: HookArgErrors['errors'] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
@@ -814,7 +816,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param userId user id
    * @param event incoming request
    */
-  async archive(id: string | ObjectId | undefined, archive = true, userId?: string | ObjectId, event?: H3Event) {
+  async archive(id: string | ObjectId | undefined, archive = true, userId?: string | ObjectId, event?: OaEventLike) {
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id, event })
     await this.callHookDocument('archive', _id, event)
@@ -841,7 +843,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param userId user id
    * @param event incoming request
    */
-  async bulkArchive(ids: (string | ObjectId | undefined)[], archive = true, userId?: string | ObjectId, event?: H3Event) {
+  async bulkArchive(ids: (string | ObjectId | undefined)[], archive = true, userId?: string | ObjectId, event?: OaEventLike) {
     this.assertBulkSize(ids)
     const errors: HookArgErrors['errors'] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
@@ -927,7 +929,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param id instance id
    * @param event incoming request
    */
-  async delete(id: string | ObjectId | undefined, event?: H3Event) {
+  async delete(id: string | ObjectId | undefined, event?: OaEventLike) {
     const _id = useObjectId(id)
     await this.callHook('delete:before', { id, _id, event })
     await this.callHookDocument('delete', _id, event)
@@ -943,7 +945,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param ids array of instance ids
    * @param event incoming request
    */
-  async bulkDelete(ids: (string | ObjectId | undefined)[], event?: H3Event) {
+  async bulkDelete(ids: (string | ObjectId | undefined)[], event?: OaEventLike) {
     this.assertBulkSize(ids)
     const errors: HookArgErrors['errors'] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
