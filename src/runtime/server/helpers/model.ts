@@ -7,7 +7,7 @@ import { MongoBulkWriteError, MongoServerError, ObjectId } from 'mongodb'
 import type { Collection, Document, Filter, OptionalUnlessRequiredId, WithId, WriteError } from 'mongodb'
 import { Hookable, type HookCallback, type HookKeys } from 'hookable'
 import { createError, type H3Event } from 'h3'
-import type { OaModels, OaModelName } from 'nuxt-oa'
+import type { OaDbModels, OaModelName } from 'nuxt-oa'
 import type { Schema } from '../../types'
 import { defaultDbName, useCol, useDb, useObjectId } from './db'
 import { pluralize } from './pluralize'
@@ -58,7 +58,7 @@ ajv.addKeyword({
 type Timestamps = { createdAt?: boolean, updatedAt?: boolean }
 type Userstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
 
-type OaDbItem<T extends OaModelName> = Omit<OaModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
+type OaDbItem<T extends OaModelName> = Omit<OaDbModels[T], 'id'> & { _id?: ObjectId, createdAt?: string | Date, updatedAt?: string | Date, createdBy?: string | ObjectId, updatedBy?: string | ObjectId, updates?: Record<string, unknown>[], _iv?: string }
 type OaTrackedProps<T extends OaModelName> = keyof OaDbItem<T> & string
 type OaSchema<T extends OaModelName> = { properties: Schema, encryptedProperties?: string[], trackedProperties?: OaTrackedProps<T>[], timestamps: Timestamps | boolean, userstamps: Userstamps | boolean, maxBulkSize?: number }
 

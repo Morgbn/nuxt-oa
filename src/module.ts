@@ -3,7 +3,7 @@ import { useLogger, defineNuxtModule, createResolver, addServerHandler, addImpor
 import type { Nuxt } from '@nuxt/schema'
 import chalk from 'chalk'
 import { defu } from 'defu'
-import genTypes from './schema-helpers'
+import genTypes, { aliasTypes } from './schema-helpers'
 import type { ModuleOptions, Schema, DefsSchema } from './runtime/types'
 
 const logger = useLogger('nuxt-oa')
@@ -245,18 +245,21 @@ export default defineNuxtModule<ModuleOptions>({
     // Add j2u (auto form generator)
     addPlugin(resolve('runtime/plugins/j2u'))
 
-    // Add types
-    let n = -1
-    addTypeTemplate({
-      filename: 'types/nuxt-oa.d.ts',
-      getContents: () => {
-        if (++n) { // on schema update
-          const { schemasByName, defsSchemas } = getSchemas(options, nuxt)
-          return genTypes(schemasByName, defsSchemas, clientSchemaByName)
+    // Add types: explicit OaJson*/OaDb* everywhere, Oa* aliases resolved per context (app = JSON, server = DB)
+    const addOaTypeTemplate = (filename: string, gen: (s: Pick<ReturnType<typeof getSchemas>, 'schemasByName' | 'defsSchemas'>) => string, context: Parameters<typeof addTypeTemplate>[1]) => {
+      let firstTime = true
+      addTypeTemplate({
+        filename,
+        getContents: () => {
+          const s = firstTime ? { schemasByName, defsSchemas } : getSchemas(options, nuxt) // re-read on schema update
+          firstTime = false
+          return gen(s)
         }
-        return genTypes(schemasByName, defsSchemas, clientSchemaByName) // first-time
-      }
-    }, { nuxt: true, nitro: true })
+      }, context)
+    }
+    addOaTypeTemplate('types/nuxt-oa.d.ts', s => genTypes(s.schemasByName, s.defsSchemas, clientSchemaByName), { nuxt: true, nitro: true, shared: true })
+    addOaTypeTemplate('types/nuxt-oa-json.d.ts', s => aliasTypes(s.schemasByName, s.defsSchemas, 'Json'), { nuxt: true })
+    addOaTypeTemplate('types/nuxt-oa-db.d.ts', s => aliasTypes(s.schemasByName, s.defsSchemas, 'Db'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
     addTypeTemplate({
       filename: 'types/oa-virtual.d.ts',
@@ -275,7 +278,7 @@ export default defineNuxtModule<ModuleOptions>({
     // On update
     nuxt.hook('builder:watch', (event, path) => {
       if (path.includes(`${options.schemasFolder}/`)) {
-        updateTemplates({ filter: t => t.filename === 'types/nuxt-oa.d.ts' })
+        updateTemplates({ filter: t => t.filename.startsWith('types/nuxt-oa') })
       }
     })
   }

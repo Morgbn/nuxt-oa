@@ -2,6 +2,9 @@ import { consola } from 'consola'
 import type { Schema, DefsSchema } from './runtime/types'
 
 type Stack = [Schema, string][]
+/** Type generation context: `json` = serialized (client) types, otherwise db/server types */
+type Ctx = { prefix: 'Json' | 'Db', json: boolean }
+const ctxs: Ctx[] = [{ prefix: 'Json', json: true }, { prefix: 'Db', json: false }]
 
 const genericTypeHelpers = `
 type _Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
@@ -18,32 +21,35 @@ const capFirst = (str: string) => str[0].toUpperCase() + str.slice(1)
 const jsonKey = (str: string) => str.match(/\W/g) ? `'${str}'` : str
 
 const refRe = /(\w+)(?:\.\w+)?#(?:\/(\w+))+/
-function simplestType(schema: Schema, interfaceName: string, stack: Stack): string {
+const refTypeName = (ref: string, ctx: Ctx) => {
+  const [, defName, keyName] = ref.match(refRe)!
+  return `Oa${ctx.prefix}${capFirst(defName)}${capFirst(keyName)}`
+}
+function simplestType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx): string {
   const suffix = (schema.nullable && !schema.enum) ? '|null' : '' // null must be explicitly included in the list of enum values, see: https://github.com/OAI/OpenAPI-Specification/blob/main/proposals/2019-10-31-Clarify-Nullable.md#if-a-schema-specifies-nullable-true-and-enum-1-2-3-does-that-schema-allow-null-values-see-1900
   if (schema.$ref) {
-    const [, defName, keyName] = schema.$ref.match(refRe)
-    return `Oa${capFirst(defName)}${capFirst(keyName)}${suffix}`
+    return `${refTypeName(schema.$ref, ctx)}${suffix}`
   }
   if (schema.properties || schema.additionalProperties || schema.enum || schema.anyOf || schema.oneOf || schema.allOf || schema.not) {
     stack.push([schema, interfaceName])
     return `${interfaceName}${suffix}`
   }
   if (schema.format === 'date' || schema.format === 'date-time') {
-    return `${schema.type ?? 'string'}|Date${suffix}`
+    return `${schema.type ?? 'string'}${ctx.json ? '' : '|Date'}${suffix}`
   }
   if (schema.format === 'objectid') {
-    return `string|import('mongodb').ObjectId${suffix}`
+    return `string${ctx.json ? '' : `|import('mongodb').ObjectId`}${suffix}`
   }
   return `${schema.type ?? 'any'}${suffix}`
 }
-function dicType(schema: Schema, interfaceName: string, stack: Stack): string {
-  const dicType = simplestType(schema.additionalProperties, `${interfaceName}Item`, stack)
+function dicType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx): string {
+  const dicType = simplestType(schema.additionalProperties, `${interfaceName}Item`, stack, ctx)
   const requiredKeys: string[] = ['string']
 
   if (schema.properties) {
     for (const key of Object.keys(schema.properties)) {
       const sc = schema.properties[key]
-      const type = simplestType(sc, `${interfaceName}Item`, [])
+      const type = simplestType(sc, `${interfaceName}Item`, [], ctx)
       if (type !== dicType) {
         throw new Error(`${interfaceName} properties types must be the same as additionalProperties`)
       }
@@ -55,7 +61,7 @@ function dicType(schema: Schema, interfaceName: string, stack: Stack): string {
   return `Record<${requiredKeys.join('|')}, ${dicType}|undefined>${schema.nullable ? '|null' : ''}`
 }
 
-function genInterface(schema: Schema, interfaceName: string, stack: Stack): string {
+function genInterface(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx): string {
   let str = `\ninterface ${interfaceName} {\n`
 
   for (const propName in schema.properties) {
@@ -70,33 +76,32 @@ function genInterface(schema: Schema, interfaceName: string, stack: Stack): stri
       const itemInterfaceName = `${propInterfaceName}Item`
       if (Array.isArray(propSchema.items)) {
         const items = propSchema.items
-          .map((item: Schema, i: number) => simplestType(item, itemInterfaceName + i, stack))
+          .map((item: Schema, i: number) => simplestType(item, itemInterfaceName + i, stack, ctx))
         str += `[${items.join(', ')}]`
       } else if (typeof propSchema.items === 'object') {
-        const t = simplestType(propSchema.items, itemInterfaceName, stack)
+        const t = simplestType(propSchema.items, itemInterfaceName, stack, ctx)
         str += `${t.includes('|') ? `(${t})` : t}[]`
       }
       if (propSchema.nullable) {
         str += '|null'
       }
     } else if (propSchema.type === 'object' && typeof propSchema.additionalProperties === 'object' && Object.keys(propSchema.additionalProperties).length) {
-      str += dicType(propSchema, propInterfaceName, stack)
+      str += dicType(propSchema, propInterfaceName, stack, ctx)
     } else {
-      str += simplestType(propSchema, propInterfaceName, stack)
+      str += simplestType(propSchema, propInterfaceName, stack, ctx)
     }
     str += '\n'
   }
   return str + '}\n'
 }
 
-function genType(schema: Schema, interfaceName: string, stack: Stack) {
+function genType(schema: Schema, interfaceName: string, stack: Stack, ctx: Ctx) {
   let str = `type ${interfaceName} = `
   if (schema.additionalProperties && Object.keys(schema.additionalProperties).length) {
-    return `${str}${dicType(schema, interfaceName, stack)}`
+    return `${str}${dicType(schema, interfaceName, stack, ctx)}`
   }
   if (schema.$ref) {
-    const [, defName, keyName] = schema.$ref.match(refRe)
-    return `${str}Oa${capFirst(defName)}${capFirst(keyName)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
+    return `${str}${refTypeName(schema.$ref, ctx)}${(schema.nullable && !schema.enum) ? '|null' : ''}`
   }
   if (schema.enum) {
     str += schema.enum
@@ -140,16 +145,16 @@ function genType(schema: Schema, interfaceName: string, stack: Stack) {
   return str
 }
 
-function genTypes(schema: Schema, interfaceName: string) {
+function genTypes(schema: Schema, interfaceName: string, ctx: Ctx) {
   const stack: Stack = [[schema, interfaceName]]
 
   const types = []
   while (stack.length) {
     const [schema, interfaceName] = stack.shift()!
     if (schema.properties) {
-      types.push(genInterface(schema, interfaceName, stack))
+      types.push(genInterface(schema, interfaceName, stack, ctx))
     } else {
-      types.push(genType(schema, interfaceName, stack))
+      types.push(genType(schema, interfaceName, stack, ctx))
     }
   }
 
@@ -161,7 +166,7 @@ function cleanSchema(schema: Schema, typeName: string) {
   const tObjectId = { type: 'string', format: 'objectid' }
   const tDate = { type: 'string', format: 'date' }
 
-  schema.properties = { id: { type: 'string' }, ...schema.properties }
+  schema.properties = { id: tObjectId, ...schema.properties }
   if (!schema.required) schema.required = []
   schema.required.push('id')
 
@@ -203,39 +208,57 @@ function cleanSchema(schema: Schema, typeName: string) {
   return schema
 }
 
+/** [type name without `Oa${prefix}`, def schema] pairs */
+const defsTypeNames = (defsSchemas: DefsSchema[]) => defsSchemas.flatMap(({ $id, definitions }) => {
+  const name = capFirst($id.split('/').pop() as string)
+  return Object.keys(definitions).map(key => [`${name}${capFirst(key)}`, definitions[key]] as const)
+})
+
 function typeGenerator(schemasByName: Record<string, Schema>, defsSchemas: DefsSchema[] = [], clientSchemaByName: Record<string, Schema> = {}): string {
   const allTypes = ['']
   const modelNames = Object.keys(schemasByName)
+  const defs = defsTypeNames(defsSchemas)
 
-  for (const modelName of modelNames) {
-    const typeName = `Oa${modelName}`
-    const schema = cleanSchema(JSON.parse(JSON.stringify(schemasByName[modelName])), typeName)
-    allTypes.push(genTypes(schema, typeName))
-  }
-
-  for (const defsSchema of defsSchemas) {
-    const { $id, definitions } = defsSchema
-    const name = capFirst($id.split('/').pop() as string)
-    for (const key in definitions) {
-      allTypes.push(genTypes(definitions[key], `Oa${name}${capFirst(key)}`))
+  for (const ctx of ctxs) {
+    for (const modelName of modelNames) {
+      const typeName = `Oa${ctx.prefix}${modelName}`
+      const schema = cleanSchema(JSON.parse(JSON.stringify(schemasByName[modelName])), typeName)
+      allTypes.push(genTypes(schema, typeName, ctx))
+    }
+    for (const [name, def] of defs) {
+      allTypes.push(genTypes(def, `Oa${ctx.prefix}${name}`, ctx))
     }
   }
 
   return [
     '// Generated by nuxt-oa',
     genericTypeHelpers,
-    allTypes.join('\n\n'),
+    allTypes.join('\n'),
     // Define models (client) schemas
     ...Object.entries(clientSchemaByName).map(([model, v]) => `type Oa${model}ClientSchema = ${JSON.stringify(v)}`),
     // Associate all models to their types
     '\ndeclare module "nuxt-oa" {',
-    '  interface OaModels {',
-    ...modelNames.flatMap(name => `    ${name}: Oa${name}`),
-    '  }',
+    ...ctxs.flatMap(({ prefix }) => [
+      `  interface Oa${prefix}Models {`,
+      ...modelNames.map(name => `    ${name}: Oa${prefix}${name}`),
+      '  }'
+    ]),
     '  interface OaClientSchemas {',
-    ...modelNames.flatMap(name => `    ${name}: Oa${name}ClientSchema`),
+    ...modelNames.map(name => `    ${name}: Oa${name}ClientSchema`),
     '  }',
-    `  type OaModelName = keyof OaModels`,
+    `  type OaModelName = keyof OaDbModels`,
+    '}'
+  ].join('\n')
+}
+
+/** Context-dependent aliases (e.g. `OaTodo` = `OaJsonTodo` in app, `OaDbTodo` in server) */
+export function aliasTypes(schemasByName: Record<string, Schema>, defsSchemas: DefsSchema[], prefix: Ctx['prefix']): string {
+  const names = [...Object.keys(schemasByName), ...defsTypeNames(defsSchemas).map(([name]) => name)]
+  return [
+    '// Generated by nuxt-oa',
+    ...names.map(name => `type Oa${name} = Oa${prefix}${name}`),
+    'declare module "nuxt-oa" {',
+    `  interface OaModels extends Oa${prefix}Models {}`,
     '}'
   ].join('\n')
 }
