@@ -267,7 +267,9 @@ export default defineNuxtModule<ModuleOptions>({
       `type OaModelBase = import('${modelPath}').OaModelBase`,
       `type OaBaseDbItem = import('${modelPath}').OaBaseDbItem`,
       `type OaBaseCollection = import('${modelPath}').OaBaseCollection`,
-      `type OaEventLike = import('${modelPath}').OaEventLike`
+      `type OaEventLike = import('${modelPath}').OaEventLike`,
+      `type OaBulkError = import('${modelPath}').OaBulkError`,
+      `type OaBulkResponse<T> = import('${modelPath}').OaBulkResponse<T>`
     ].join('\n'), { nitro: true })
     // Type the virtual modules used internally by the runtime (avoids `@ts-expect-error` on import)
     const typesPath = resolve('runtime/types')

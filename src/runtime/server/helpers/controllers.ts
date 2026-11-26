@@ -2,6 +2,7 @@ import { createError, readBody } from 'h3'
 import type { H3Event } from 'h3'
 import type { ObjectId } from 'mongodb'
 import { useObjectId } from './db'
+import { isPlainObject } from './_'
 import type Model from './model'
 import type { OaEventLike } from './model'
 import { oaHandler } from './router'
@@ -16,6 +17,22 @@ const instance200 = (name: string) => ({
   }
 })
 
+const bulkErrorsSchema = {
+  type: 'array',
+  items: {
+    type: 'object',
+    required: ['error', 'code'],
+    properties: {
+      id: { type: 'string', description: 'Failed item id (update/archive/delete)' },
+      index: { type: 'number', description: 'Failed item position in the input array (create, malformed update entry)' },
+      code: { type: 'string', enum: ['BAD_ID', 'DUPLICATE_ID', 'BAD_DATA', 'NOT_FOUND', 'DUPLICATE_KEY', 'WRITE_ERROR', 'REJECTED'] },
+      details: { description: 'Thrown error data (e.g. validation errors)' },
+      error: { type: 'string' },
+      data: { type: 'object', deprecated: true, description: 'Use `id` / `index` / `details`' }
+    }
+  }
+}
+
 const modelIdInPath = (name: string) => ({
   in: 'path',
   name: 'id',
@@ -27,8 +44,6 @@ const modelIdInPath = (name: string) => ({
 })
 
 const isString = (value: unknown): value is string => typeof value === 'string'
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
 const isBulkUpdateItem = (value: unknown): value is { id: string, d: Record<string, unknown> } =>
   isPlainObject(value) && isString(value.id) && isPlainObject(value.d)
 
@@ -146,21 +161,7 @@ export const useBulkCreate = <T extends OaModelName>(model: Model<T>, apiDoc = {
                     $ref: `#/components/schemas/${name}`
                   }
                 },
-                errors: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      data: {
-                        type: 'object',
-                        properties: {
-                          index: { type: 'number' }
-                        }
-                      },
-                      error: { type: 'string' }
-                    }
-                  }
-                }
+                errors: bulkErrorsSchema
               }
             }
           }
@@ -242,21 +243,7 @@ export const useBulkUpdate = <T extends OaModelName>(model: Model<T>, apiDoc = {
                     $ref: `#/components/schemas/${name}`
                   }
                 },
-                errors: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      data: {
-                        type: 'object',
-                        properties: {
-                          id: { type: 'string' }
-                        }
-                      },
-                      error: { type: 'string' }
-                    }
-                  }
-                }
+                errors: bulkErrorsSchema
               }
             }
           }
@@ -338,21 +325,7 @@ export const useBulkArchive = <T extends OaModelName>(model: Model<T>, apiDoc = 
                     $ref: `#/components/schemas/${name}`
                   }
                 },
-                errors: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      data: {
-                        type: 'object',
-                        properties: {
-                          id: { type: 'string' }
-                        }
-                      },
-                      error: { type: 'string' }
-                    }
-                  }
-                }
+                errors: bulkErrorsSchema
               }
             }
           }
@@ -432,21 +405,7 @@ export const useBulkDelete = <T extends OaModelName>(model: Model<T>, apiDoc = {
                 deletedCount: {
                   type: 'number'
                 },
-                errors: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      data: {
-                        type: 'object',
-                        properties: {
-                          id: { type: 'string' }
-                        }
-                      },
-                      error: { type: 'string' }
-                    }
-                  }
-                }
+                errors: bulkErrorsSchema
               }
             }
           }

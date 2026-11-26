@@ -74,7 +74,22 @@ type HookArgIds = { id: string | ObjectId | undefined, _id: ObjectId }
 // ids is the raw input as given by the caller; _ids only contains the ones that parsed successfully —
 // they don't correspond by index/length when some ids are malformed
 type HookArgIdsArray = { ids: (string | ObjectId | undefined)[], _ids: ObjectId[] }
-type HookArgErrors = { errors: { data?: Schema, error: unknown }[] }
+export type OaBulkErrorCode = 'BAD_ID' | 'DUPLICATE_ID' | 'BAD_DATA' | 'NOT_FOUND' | 'DUPLICATE_KEY' | 'WRITE_ERROR' | 'REJECTED'
+/**
+ * Per-item bulk failure: `id` for update/archive/delete, `index` (position in input array) for create & malformed bulkUpdate entries,
+ * neither when a whole updateMany/deleteMany failed (see `data.ids`). `details` = thrown error's `data` (e.g. ajv errors)
+ */
+export type OaBulkError = {
+  id?: string
+  index?: number
+  error: string
+  code: OaBulkErrorCode
+  details?: unknown
+  /** @deprecated use `id` / `index` / `details` */
+  data?: Schema
+}
+export type OaBulkResponse<T> = { results: T[], errors: OaBulkError[] }
+type HookArgErrors = { errors: OaBulkError[] }
 export interface ModelNuxtOaHooks<T extends OaModelName> {
   'collection:ready': (d: { collection: Collection<OaDbItem<T>>, dbName: string, defaultDbName: string }) => HookResult
   'collection:before': (d: { setDb: (dbName: string) => void, defaultDbName: string }) => HookResult
@@ -113,11 +128,20 @@ export interface ModelNuxtOaHooks<T extends OaModelName> {
 type SettledWithErrorsOptions<Item, R> = {
   items: Item[]
   run: (item: Item, index: number) => Promise<R> | R
-  errors: HookArgErrors['errors']
-  errorData?: (item: Item, causeData: Schema | undefined, index: number) => Schema | undefined
+  errors: OaBulkError[]
+  /** identifies the failed item in its error entry */
+  errorRef: (item: Item, index: number) => BulkErrorRef
+  /** legacy `data` base, defaults to errorRef */
+  legacyData?: (item: Item) => Schema
 }
 
 const bulkActionMap = { update: 'bulkUpdate', archive: 'bulkArchive', delete: 'bulkDelete' } as const
+const statusCodeMap: Partial<Record<number, OaBulkErrorCode>> = { 400: 'BAD_DATA', 404: 'NOT_FOUND' }
+type BulkErrorRef = Pick<OaBulkError, 'id' | 'index'>
+/** Build a bulk error entry, filling the deprecated `data` field for backward compatibility */
+const bulkError = (ref: BulkErrorRef, entry: Pick<OaBulkError, 'error' | 'code' | 'details'>, data: Schema = ref): OaBulkError =>
+  ({ ...ref, ...entry, data })
+const notFoundError = (id: unknown) => bulkError({ id: `${id}` }, { code: 'NOT_FOUND', error: 'Document not found' })
 
 export function cleanSchema(schema: Schema): Schema {
   schema.type = 'object' //  type must be object
@@ -399,7 +423,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    * @returns fetched documents (unfiltered) and the ids whose single-document hook rejected
    */
-  private async callHookDocuments(action: 'update' | 'archive' | 'delete', _ids: ObjectId[], errors: HookArgErrors['errors'], event?: OaEventLike): Promise<{ documents: WithId<OaDbItem<T>>[], rejectedIds: Set<string> } | null> {
+  private async callHookDocuments(action: 'update' | 'archive' | 'delete', _ids: ObjectId[], errors: OaBulkError[], event?: OaEventLike): Promise<{ documents: WithId<OaDbItem<T>>[], rejectedIds: Set<string> } | null> {
     const docHooks = await new Promise<HookCallback[]>(resolve => this.callHookWith(resolve, `${action}:document`, {}))
     const docsHooks = await new Promise<HookCallback[]>(resolve => this.callHookWith(resolve, `${bulkActionMap[action]}:documents`, {}))
 
@@ -413,7 +437,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         return document
       },
       errors,
-      errorData: document => ({ id: `${document._id}` })
+      errorRef: document => ({ id: `${document._id}` })
     })
 
     // Only the documents that survived the per-document hook are actually going to be processed further down
@@ -454,17 +478,17 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param id raw id to parse
    * @param seenIds ids already parsed in this batch, for duplicate detection
    * @param errors errors accumulator
-   * @param errorData error entry data, defaults to `{ id }`
+   * @param legacyData deprecated error `data`, defaults to `{ id }`
    */
-  private parseId(id: string | ObjectId | undefined, seenIds: Set<string>, errors: HookArgErrors['errors'], errorData?: Schema): ObjectId | null {
+  private parseId(id: string | ObjectId | undefined, seenIds: Set<string>, errors: OaBulkError[], legacyData?: Schema): ObjectId | null {
     const _id = this.tryObjectId(id)
     if (!_id) {
-      errors.push({ data: errorData ?? { id: `${id}` }, error: 'Bad id' })
+      errors.push(bulkError({ id: `${id}` }, { code: 'BAD_ID', error: 'Bad id' }, legacyData))
       return null
     }
     const key = _id.toString()
     if (seenIds.has(key)) {
-      errors.push({ data: errorData ?? { id: `${id}` }, error: 'Duplicate id' })
+      errors.push(bulkError({ id: `${id}` }, { code: 'DUPLICATE_ID', error: 'Duplicate id' }, legacyData))
       return null
     }
     seenIds.add(key)
@@ -485,15 +509,17 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * Normalize a rejection (thrown validation error, hook error, malformed id, ...) into an error entry
    * @param reason
    */
-  private toErrorEntry(reason: unknown): { data?: Schema, error: unknown } {
-    if (reason && typeof reason === 'object' && 'cause' in reason) {
-      const cause = (reason as { cause?: unknown }).cause
-      if (cause && typeof cause === 'object') {
-        const { data, statusMessage } = cause as { data?: Schema, statusMessage?: unknown }
-        return { data, error: statusMessage ?? this.errorMessage(reason) }
+  private toErrorEntry(reason: unknown): Pick<OaBulkError, 'error' | 'code' | 'details'> {
+    const cause = (reason as { cause?: unknown } | null | undefined)?.cause
+    if (cause && typeof cause === 'object') {
+      const { data, statusMessage, statusCode } = cause as { data?: unknown, statusMessage?: string, statusCode?: number }
+      return {
+        error: statusMessage ?? this.errorMessage(reason),
+        code: (statusCode && statusCodeMap[statusCode]) || 'REJECTED',
+        details: data
       }
     }
-    return { error: this.errorMessage(reason) }
+    return { error: this.errorMessage(reason), code: 'REJECTED' }
   }
 
   /**
@@ -509,9 +535,10 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * MongoDB's raw `errmsg` can leak internal details
    * map known error codes to a safe, generic message
    */
-  private writeErrorMessage(writeError: { code?: number | string } | undefined): string {
-    if (!writeError) return 'Write error'
-    return writeError.code === 11000 ? 'Duplicate key' : 'Write error'
+  private writeErrorEntry(writeError: { code?: number | string } | undefined): Pick<OaBulkError, 'error' | 'code'> {
+    return writeError?.code === 11000
+      ? { error: 'Duplicate key', code: 'DUPLICATE_KEY' }
+      : { error: 'Write error', code: 'WRITE_ERROR' }
   }
 
   /**
@@ -524,9 +551,10 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       if (result.status === 'fulfilled') {
         fulfilled.push(result.value)
       } else {
-        const { data, error } = this.toErrorEntry(result.reason)
-        const errorData = opt.errorData ? opt.errorData(opt.items[i]!, data, i) : data ?? opt.items[i]!
-        opt.errors.push({ data: errorData, error })
+        const item = opt.items[i]!
+        const ref = opt.errorRef(item, i)
+        const entry = this.toErrorEntry(result.reason)
+        opt.errors.push(bulkError(ref, entry, { ...(opt.legacyData?.(item) ?? ref), ...(_.isPlainObject(entry.details) && entry.details) }))
       }
     }
     return fulfilled
@@ -579,24 +607,24 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async bulkCreate(d: OptionalUnlessRequiredId<OaDbItem<T>>[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
+  async bulkCreate(d: OptionalUnlessRequiredId<OaDbItem<T>>[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike): Promise<OaBulkResponse<OaPartialItem<T>>> {
     this.assertBulkSize(d)
     await this.callHook('bulkCreate:before', { data: d as OaPartialItem<T>[], event })
     // Prepare data
     const at = new Date()
-    const errors: HookArgErrors['errors'] = []
+    const errors: OaBulkError[] = []
     // index is the item's position in `d`, kept alongside data so a failure (validation or write)
     // can be linked back to the submitted item even when several items are identical
     const prepared = await this.settleWithErrors({
       items: d,
       run: async (item, index) => ({ index, data: await this.createHelper(item, readOnlyData, event, userId, at) }),
       errors,
-      errorData: (item, data, index) => ({ index, ...data })
+      errorRef: (_item, index) => ({ index })
     })
     const preparedItems = prepared.map(p => p.data)
     await this.callHook('bulkCreate:after', { data: preparedItems as OaPartialItem<T>[], errors, event })
     // Insert valid data
-    const results: ReturnType<typeof this.cleanJSON>[] = []
+    const results: OaPartialItem<T>[] = []
     if (prepared.length) {
       let insertedIds: Record<number, ObjectId>
       let writeErrors: WriteError[] = []
@@ -610,18 +638,23 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       }
       // i = position in insertMany's array (for writeErrorByIndex); index = original position in `d`
       const writeErrorByIndex = new Map(writeErrors.map(we => [we.index, we]))
+      // keep index so a create:done failure is reported by input position like other create errors
+      const created: { index: number, json: OaPartialItem<T> }[] = []
       for (const [i, { index, data }] of prepared.entries()) {
         const insertedId = insertedIds[i]
         if (insertedId !== undefined) {
-          results.push(this.cleanJSON({ _id: insertedId, ...data }))
+          created.push({ index, json: this.cleanJSON({ _id: insertedId, ...data }) })
         } else {
-          errors.push({ data: { index }, error: this.writeErrorMessage(writeErrorByIndex.get(i)) })
+          errors.push(bulkError({ index }, this.writeErrorEntry(writeErrorByIndex.get(i))))
         }
       }
+      results.push(...created.map(c => c.json))
       await this.settleWithErrors({
-        items: results,
-        run: json => this.callHook('create:done', { data: json, event }),
-        errors
+        items: created,
+        run: c => this.callHook('create:done', { data: c.json, event }),
+        errors,
+        errorRef: c => ({ index: c.index }),
+        legacyData: c => c.json
       })
     }
 
@@ -733,15 +766,15 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param readOnlyData data from application logic
    * @param event incoming request
    */
-  async bulkUpdate(u: { id: string | ObjectId, d: Partial<OaDbItem<T> & Schema> }[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike) {
+  async bulkUpdate(u: { id: string | ObjectId, d: Partial<OaDbItem<T> & Schema> }[], userId?: string | ObjectId, readOnlyData?: Partial<OaDbItem<T> & Schema> | null, event?: OaEventLike): Promise<OaBulkResponse<OaPartialItem<T>>> {
     this.assertBulkSize(u)
-    const errors: HookArgErrors['errors'] = []
+    const errors: OaBulkError[] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
     const seenIds = new Set<string>()
     const parsed: { id: string, _id: ObjectId, d: Partial<OaDbItem<T> & Schema> }[] = []
-    for (const entry of u) {
+    for (const [index, entry] of u.entries()) {
       if (!entry || typeof entry !== 'object') {
-        errors.push({ data: { id: `${entry}` }, error: 'Bad data' })
+        errors.push(bulkError({ index }, { code: 'BAD_DATA', error: 'Bad data' }, { id: `${entry}` }))
         continue
       }
       const { id, d } = entry
@@ -764,7 +797,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         return update
       },
       errors,
-      errorData: (update, data) => ({ id: update.id, ...data })
+      errorRef: update => ({ id: update.id })
     })
 
     // Fetch all documents in ONE call
@@ -780,7 +813,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       run: async (update) => {
         this.validate(update.d)
         const document = documentsMap.get(update._id.toString())
-        if (!document) throw new Error('Document not found')
+        if (!document) throw createError({ statusCode: 404, statusMessage: 'Document not found' })
         const data = await this.getUpdateData(update.id, update._id, update.d, document, userId, readOnlyData, event, at)
         return {
           data,
@@ -791,12 +824,12 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         }
       },
       errors,
-      errorData: (update, data) => ({ id: `${update._id}`, ...data })
+      errorRef: update => ({ id: update.id })
     })
     const fulfilledIds = bulkOps.map(op => op.updateOne.filter._id)
     await this.callHook('bulkUpdate:after', { data: bulkOps.map(op => op.data), errors, event })
 
-    const results: ReturnType<typeof this.cleanJSON>[] = []
+    const results: OaPartialItem<T>[] = []
     if (bulkOps.length) {
       let writeErrors: WriteError[] = []
       try {
@@ -806,7 +839,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         writeErrors = this.normalizeWriteErrors(error.writeErrors)
       }
       for (const writeError of writeErrors) {
-        errors.push({ data: { id: `${fulfilledIds[writeError.index]}` }, error: this.writeErrorMessage(writeError) })
+        errors.push(bulkError({ id: `${fulfilledIds[writeError.index]}` }, this.writeErrorEntry(writeError)))
       }
       const failedIndices = new Set(writeErrors.map(we => we.index))
       const succeededIds = fulfilledIds.filter((_id, i) => !failedIndices.has(i))
@@ -818,14 +851,16 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       // A succeeded write can still fail to come back here
       const updatedIds = new Set(results.map(j => j.id?.toString()))
       for (const _id of succeededIds) {
-        if (!updatedIds.has(_id.toString())) errors.push({ data: { id: `${_id}` }, error: 'Document not found' })
+        if (!updatedIds.has(_id.toString())) errors.push(notFoundError(_id))
       }
     }
 
     await this.settleWithErrors({
       items: results,
       run: json => this.callHook('update:done', { data: json, event }),
-      errors
+      errors,
+      errorRef: json => ({ id: `${json.id}` }),
+      legacyData: json => json
     })
     await this.callHook('bulkUpdate:done', { data: results, errors, event })
 
@@ -868,9 +903,9 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param userId user id
    * @param event incoming request
    */
-  async bulkArchive(ids: (string | ObjectId | undefined)[], archive = true, userId?: string | ObjectId, event?: OaEventLike) {
+  async bulkArchive(ids: (string | ObjectId | undefined)[], archive = true, userId?: string | ObjectId, event?: OaEventLike): Promise<OaBulkResponse<OaPartialItem<T>>> {
     this.assertBulkSize(ids)
-    const errors: HookArgErrors['errors'] = []
+    const errors: OaBulkError[] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
     const seenIds = new Set<string>()
     const parsed: { id: string | ObjectId | undefined, _id: ObjectId }[] = []
@@ -889,7 +924,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         return p
       },
       errors,
-      errorData: (p, data) => ({ id: `${p.id}`, ...data })
+      errorRef: p => ({ id: `${p.id}` })
     })
 
     const docsResult = await this.callHookDocuments('archive', entries.map(p => p._id), errors, event)
@@ -909,11 +944,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         return p
       },
       errors,
-      errorData: (p, errData) => ({ id: `${p.id}`, ...errData })
+      errorRef: p => ({ id: `${p.id}` })
     })
     await this.callHook('bulkArchive:after', { _ids: entries.map(p => p._id), data: data as OaPartialItem<T>, errors, event })
 
-    const results: ReturnType<typeof this.cleanJSON>[] = []
+    const results: OaPartialItem<T>[] = []
     if (entries.length) {
       const validIds = entries.map(p => p._id)
       let writeFailed = false
@@ -922,7 +957,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       } catch (error) {
         if (!(error instanceof MongoServerError)) throw error
         writeFailed = true
-        errors.push({ data: { ids: validIds.map(String) }, error: this.writeErrorMessage(error) })
+        errors.push(bulkError({}, this.writeErrorEntry(error), { ids: validIds.map(String) }))
       }
       // failed updateMany -> unable to tell which if any documents were actually updated -> skip
       if (!writeFailed) {
@@ -932,7 +967,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         results.push(...documents.map(d => this.cleanJSON(d)))
         const updatedIds = new Set(results.map(j => j.id?.toString()))
         for (const p of entries) {
-          if (!updatedIds.has(p._id.toString())) errors.push({ data: { id: `${p.id}` }, error: 'Document not found' })
+          if (!updatedIds.has(p._id.toString())) errors.push(notFoundError(p.id))
         }
       }
     }
@@ -940,7 +975,9 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
     await this.settleWithErrors({
       items: results,
       run: json => this.callHook('archive:done', { data: json, event }),
-      errors
+      errors,
+      errorRef: json => ({ id: `${json.id}` }),
+      legacyData: json => json
     })
     await this.callHook('bulkArchive:done', { data: results, event, errors })
 
@@ -970,9 +1007,9 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param ids array of instance ids
    * @param event incoming request
    */
-  async bulkDelete(ids: (string | ObjectId | undefined)[], event?: OaEventLike) {
+  async bulkDelete(ids: (string | ObjectId | undefined)[], event?: OaEventLike): Promise<{ deletedCount: number, errors: OaBulkError[] }> {
     this.assertBulkSize(ids)
-    const errors: HookArgErrors['errors'] = []
+    const errors: OaBulkError[] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch
     const seenIds = new Set<string>()
     const parsed: { id: string | ObjectId | undefined, _id: ObjectId }[] = []
@@ -991,7 +1028,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         return p
       },
       errors,
-      errorData: (p, data) => ({ id: `${p.id}`, ...data })
+      errorRef: p => ({ id: `${p.id}` })
     })
 
     let deletedCount = 0
@@ -1017,7 +1054,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       } catch (error) {
         if (!(error instanceof MongoServerError)) throw error
         deleteFailed = true
-        errors.push({ data: { ids: deletableIds.map(String) }, error: this.writeErrorMessage(error) })
+        errors.push(bulkError({}, this.writeErrorEntry(error), { ids: deletableIds.map(String) }))
       }
       // failed deleteMany -> unable to tell which if any documents were actually removed -> skip
       if (!deleteFailed) {
@@ -1025,7 +1062,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
           items: entries.filter(p => !rejectedIds.has(p._id.toString())),
           run: (p) => {
             if (!existingIds.has(p._id.toString())) {
-              errors.push({ data: { id: `${p.id}` }, error: 'Document not found' })
+              errors.push(notFoundError(p.id))
               return
             }
             const data = { id: p.id } as OaPartialItem<T>
@@ -1033,7 +1070,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
             return this.callHook('delete:done', { data, deletedCount: 1, event })
           },
           errors,
-          errorData: (p, data) => data ?? { id: `${p.id}` }
+          errorRef: p => ({ id: `${p.id}` })
         })
       }
     }
