@@ -2,38 +2,61 @@ name: ci
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, alpha]
   pull_request:
-    branches:
-      - main
+    branches: [main, alpha]
+  workflow_dispatch:
 
 permissions:
-  id-token: write
-  contents: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 24
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm dev:prepare
+          persist-credentials: false
+      - &pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - &node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - &install
+        run: pnpm install --frozen-lockfile
+      - &prepare
+        run: pnpm dev:prepare
       - run: pnpm lint
       - run: pnpm build
 
-      - name: Publish
-        if: |
-          github.event_name == 'push' &&
-          !contains(github.event.head_commit.message, '[skip-release]')
-        run: |
-          pnpm add -g semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/npm @semantic-release/git @semantic-release/github &&
+  release:
+    needs: ci
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - *pnpm
+      - *node
+      - *install
+      - *prepare
+      - run: >-
+          pnpm dlx
+          --package=semantic-release@26
+          --package=@semantic-release/changelog@7
+          --package=@semantic-release/git@11
           semantic-release
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
