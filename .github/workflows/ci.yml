@@ -55,8 +55,6 @@ jobs:
       - run: >-
           pnpm dlx
           --package=semantic-release@26
-          --package=@semantic-release/changelog@7
-          --package=@semantic-release/git@11
           semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
