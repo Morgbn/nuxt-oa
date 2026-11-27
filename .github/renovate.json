@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices", ":semanticCommits", "schedule:weekly"],
+  "timezone": "Europe/Paris",
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "commitMessagePrefix": "chore: :arrow_up:"
+  },
+  "packageRules": [
+    {
+      "matchDepTypes": ["dependencies"],
+      "rangeStrategy": "bump",
+      "commitMessagePrefix": "fix: :arrow_up:"
+    },
+    {
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dependencies (non-major)",
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies", "packageManager"],
+      "commitMessagePrefix": "chore: :arrow_up:"
+    },
+    {
+      "matchDepTypes": ["devDependencies", "packageManager"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "devDependencies (non-major)",
+      "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "commitMessagePrefix": "ci: :arrow_up:",
+      "matchUpdateTypes": ["minor", "patch", "pinDigest", "digest"],
+      "groupName": "github-actions (non-major)",
+      "automerge": true
+    }
+  ]
+}
