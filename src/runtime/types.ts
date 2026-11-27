@@ -55,7 +55,7 @@ export interface ModuleOptions {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Schema = { [key: string]: any }
 
-export type OaTimestamps = { createdAt?: boolean, updatedAt?: boolean }
+export type OaTimestamps = { createdAt?: boolean, updatedAt?: boolean, deletedAt?: boolean }
 export type OaUserstamps = { createdBy?: boolean, updatedBy?: boolean, deletedBy?: boolean }
 
 /** JSON Schema draft-07 + nuxt-oa keywords */

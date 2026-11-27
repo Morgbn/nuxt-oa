@@ -255,6 +255,7 @@ export const useBulkUpdate = <T extends OaModelName>(model: Model<T>, apiDoc = {
 }
 
 export const useArchive = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
+  model.assertArchivable() // fail at route setup, not per request
   const { name } = model
   const lowerName = name.toLowerCase()
 
@@ -286,6 +287,7 @@ export const useArchive = <T extends OaModelName>(model: Model<T>, apiDoc = {}) 
 }
 
 export const useBulkArchive = <T extends OaModelName>(model: Model<T>, apiDoc = {}) => {
+  model.assertArchivable() // fail at route setup, not per request
   const { name } = model
   const lowerName = name.toLowerCase()
 

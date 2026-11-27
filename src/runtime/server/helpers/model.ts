@@ -14,6 +14,7 @@ import { pluralize } from './pluralize'
 import { decrypt, encrypt } from './cipher'
 import { useOaConfig } from './config'
 import * as _ from './_'
+import { resolveStamps } from '../../stamps'
 import { useOaServerSchema } from '#oa-nitro'
 
 const { cipherAlgo, cipherKey, cipherIvSize, dbClientOnRenderer, maxBulkSize: defaultMaxBulkSize } = useOaConfig()
@@ -218,32 +219,11 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
       }
     }
 
-    this.userstamps = typeof schema.userstamps === 'object'
-      ? schema.userstamps
-      : (!schema.userstamps ? {} : { createdBy: true, updatedBy: true, deletedBy: true })
-    this.timestamps = typeof schema.timestamps === 'object'
-      ? schema.timestamps
-      : (!schema.timestamps ? {} : { createdAt: true, updatedAt: true })
+    const { timestamps, userstamps, trackedProps } = resolveStamps(schema)
+    this.timestamps = timestamps
+    this.userstamps = userstamps
+    this.trackedProps = trackedProps as OaTrackedProps<T>[]
     this.maxBulkSize = schema.maxBulkSize ?? defaultMaxBulkSize
-
-    const props = new Set<string>() // props to put in updates
-    props.add('updatedAt') // always add updatedAt
-    if (this.userstamps.updatedBy) props.add('updatedBy') // add updatedBy if configured
-    if (Array.isArray(schema.trackedProperties)) {
-      schema.trackedProperties.forEach(props.add, props)
-    } else if (schema.trackedProperties === true) { // track all
-      for (const key in schema.properties) {
-        // except readOnly properties & id & createdAt/By
-        if (['id', 'createdAt', 'createdBy'].includes(key)) continue
-        const prop = schema.properties[key]
-        if (typeof prop === 'object' && prop.readOnly) continue
-        props.add(key)
-      }
-    }
-    this.trackedProps = [...props] as OaTrackedProps<T>[]
-    if (this.trackedProps.length) { // if tracking props
-      this.timestamps.updatedAt = true // need updatedAt
-    }
 
     this.schema = { additionalProperties: false, ...schema } // set additionalProperties to false by default
     cleanSchema(this.schema)
@@ -469,6 +449,12 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
         statusMessage: 'Too many items',
         data: { max: this.maxBulkSize, received: items.length }
       })
+  }
+
+  /** Archive requires `timestamps.deletedAt` */
+  assertArchivable() {
+    if (!this.timestamps.deletedAt)
+      throw createError({ statusCode: 405, statusMessage: `${this.name} is not archivable (timestamps.deletedAt disabled)` })
   }
 
   /**
@@ -888,6 +874,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    */
   async archive(id: string | ObjectId | undefined, archive = true, userId?: string | ObjectId, event?: OaEventLike) {
+    this.assertArchivable()
     const _id = useObjectId(id)
     await this.callHook('archive:before', { id, _id, event })
     await this.callHookDocument('archive', _id, event)
@@ -915,6 +902,7 @@ export default class Model<T extends OaModelName> extends Hookable<ModelNuxtOaHo
    * @param event incoming request
    */
   async bulkArchive(ids: (string | ObjectId | undefined)[], archive = true, userId?: string | ObjectId, event?: OaEventLike): Promise<OaBulkResponse<OaPartialItem<T>>> {
+    this.assertArchivable()
     this.assertBulkSize(ids)
     const errors: OaBulkError[] = []
     // Parse ids, isolating malformed ones as errors instead of aborting the whole batch

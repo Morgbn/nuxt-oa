@@ -171,30 +171,16 @@ function genTypes(schema: Schema, interfaceName: string, ctx: Ctx) {
 
 /** Add id, timestamps / userstamps, replace trackedProperties… */
 function cleanSchema(schema: Schema, typeName: string) {
-  addStampProps(schema)
-  delete schema.timestamps
-  delete schema.userstamps
-
-  const props = new Set<string>() // props to put in updates
-  if (Array.isArray(schema.trackedProperties)) {
-    schema.trackedProperties.forEach(props.add, props)
-    props.add('updatedAt')
-  } else if (schema.trackedProperties === true) { // track all
-    for (const key in schema.properties) {
-      if (!['id', 'createdAt', 'createdBy'].includes(key) && !schema.properties[key].readOnly) { // except readOnly properties & id & createdAt/By
-        props.add(key)
-      }
-    }
-    props.add('updatedAt')
-  }
-  const trackedProps = [...props].map(prop => `'${prop}'`).join(' | ')
-  if (trackedProps) {
+  const { trackedProps } = addStampProps(schema)
+  if (trackedProps.length) {
     schema.properties.updates = {
       description: updatesDescription,
-      type: `Pick<${typeName}, ${trackedProps}>[]`
+      type: `Pick<${typeName}, ${trackedProps.map(prop => `'${prop}'`).join(' | ')}>[]`
     }
-    delete schema.trackedProperties
   }
+  delete schema.timestamps
+  delete schema.userstamps
+  delete schema.trackedProperties
   delete schema.encryptedProperties
   delete schema.maxBulkSize
 

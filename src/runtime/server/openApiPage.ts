@@ -21,9 +21,14 @@ const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/compone
 const schemas = Object.entries(oaSchemasByName)
   .reduce((o: Record<string, Schema>, [key, schema]) => {
     const s: Schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
-    addStampProps(s, true)
-    if (s.trackedProperties) {
-      s.properties.updates = { type: 'array', readOnly: true, description: updatesDescription, items: { type: 'object' } }
+    const { trackedProps } = addStampProps(s, true)
+    if (trackedProps.length) {
+      s.properties.updates = {
+        type: 'array',
+        readOnly: true,
+        description: updatesDescription,
+        items: { type: 'object', properties: Object.fromEntries(trackedProps.map(k => [k, s.properties[k]])) }
+      }
     }
     o[key] = cleanSchema(s)
     return o
