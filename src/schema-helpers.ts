@@ -1,5 +1,6 @@
 import { consola } from 'consola'
 import type { Schema, DefsSchema } from './runtime/types'
+import { addStampProps, updatesDescription } from './runtime/stamps'
 
 type Stack = [Schema, string][]
 /** Type generation context: `json` = serialized (client) types, otherwise db/server types */
@@ -168,26 +169,12 @@ function genTypes(schema: Schema, interfaceName: string, ctx: Ctx) {
   return types.join('\n')
 }
 
-/** Add id, replace timestamps / userstamps / trackedProperties… */
+/** Add id, timestamps / userstamps, replace trackedProperties… */
 function cleanSchema(schema: Schema, typeName: string) {
-  const tObjectId = { type: 'string', format: 'objectid' }
-  const tDate = { type: 'string', format: 'date' }
+  addStampProps(schema)
+  delete schema.timestamps
+  delete schema.userstamps
 
-  schema.properties = { id: tObjectId, ...schema.properties }
-  if (!schema.required) schema.required = []
-  schema.required.push('id')
-
-  if (schema.timestamps) {
-    const timestamps = schema.timestamps === true ? { createdAt: true, updatedAt: true, deletedAt: true } : (schema.timestamps || {})
-    schema.properties = { ...schema.properties, ...Object.keys(timestamps).reduce((o, k) => ({ ...o, [k]: tDate }), {} as Record<string, typeof tDate>) }
-    delete schema.timestamps
-  }
-
-  if (schema.userstamps) {
-    const userstamps = schema.userstamps === true ? { createdBy: true, updatedBy: true, deletedBy: true } : (schema.userstamps || {})
-    schema.properties = { ...schema.properties, ...Object.keys(userstamps).reduce((o, k) => ({ ...o, [k]: tObjectId }), {} as Record<string, typeof tObjectId>) }
-    delete schema.userstamps
-  }
   const props = new Set<string>() // props to put in updates
   if (Array.isArray(schema.trackedProperties)) {
     schema.trackedProperties.forEach(props.add, props)
@@ -202,9 +189,8 @@ function cleanSchema(schema: Schema, typeName: string) {
   }
   const trackedProps = [...props].map(prop => `'${prop}'`).join(' | ')
   if (trackedProps) {
-    schema.properties.updatedAt = tDate
     schema.properties.updates = {
-      description: 'Keeps track of some updated properties',
+      description: updatesDescription,
       type: `Pick<${typeName}, ${trackedProps}>[]`
     }
     delete schema.trackedProperties

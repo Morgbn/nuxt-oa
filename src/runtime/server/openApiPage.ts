@@ -1,6 +1,7 @@
 import { defineEventHandler, setHeader } from 'h3'
 import type { Schema } from '../types'
 import { cleanSchema } from './helpers/model'
+import { addStampProps, updatesDescription } from '../stamps'
 import { useOaConfig } from './helpers/config'
 import { paths, components } from './helpers/router'
 import { oaDefsSchemas, oaSchemasByName } from '#oa-nitro'
@@ -19,8 +20,12 @@ const refRe = /("\$ref": ")(\w+)(?:\.\w+)?#(?:\/(\w+))+"/g
 const refSubst = hasMultiDefsId ? '$1#/components/schemas/$2_$3"' : '$1#/components/schemas/$3"'
 const schemas = Object.entries(oaSchemasByName)
   .reduce((o: Record<string, Schema>, [key, schema]) => {
-    schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
-    o[key] = cleanSchema(schema as Schema)
+    const s: Schema = JSON.parse(JSON.stringify(schema, null, 2).replace(refRe, refSubst))
+    addStampProps(s, true)
+    if (s.trackedProperties) {
+      s.properties.updates = { type: 'array', readOnly: true, description: updatesDescription, items: { type: 'object' } }
+    }
+    o[key] = cleanSchema(s)
     return o
   }, {})
 
